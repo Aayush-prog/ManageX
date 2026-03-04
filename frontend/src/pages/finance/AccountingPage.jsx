@@ -1,14 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
+import { fmtBSDate, curADMonth } from '../../utils/nepaliDate.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmtNPR   = (n) => `Rs. ${(n ?? 0).toLocaleString('en-IN')}`;
-const fmtDate  = (iso) =>
-  iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+const fmtDate  = fmtBSDate;
 const todayISO = () => new Date().toISOString().slice(0, 10);
-const curMonth = () => new Date().toISOString().slice(0, 7);
+const curMonth = curADMonth;
 
 const CATEGORIES = ['Travel', 'Equipment', 'Software', 'Marketing', 'Operations', 'Other'];
 

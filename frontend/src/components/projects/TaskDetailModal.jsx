@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import api from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
+import { fmtBSDate, fmtBSDateTime } from '../../utils/nepaliDate.js';
 
 const PRIORITY_BADGE = {
   Low:      'bg-gray-100 text-gray-600',
@@ -17,11 +18,8 @@ const STATUS_BADGE = {
   Done:       'bg-green-50 text-green-700',
 };
 
-const fmtDate = (iso) =>
-  iso ? new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
-
-const fmtDateTime = (iso) =>
-  iso ? new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+const fmtDate = fmtBSDate;
+const fmtDateTime = fmtBSDateTime;
 
 const fileIcon = (name) => {
   const ext = name.split('.').pop().toLowerCase();

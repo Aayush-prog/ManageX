@@ -2,19 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
+import { curADMonth, fmtBSMonthYear } from '../../utils/nepaliDate.js';
 
 const fmtNPR = (n = 0) => `Rs. ${Number(n).toLocaleString('en-IN')}`;
-
-const currentMonthKey = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-};
-
-const fmtMonth = (m) => {
-  if (!m) return '—';
-  const [y, mo] = m.split('-');
-  return new Date(y, Number(mo) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-};
+const currentMonthKey = curADMonth;
+const fmtMonth = fmtBSMonthYear;
 
 const FinanceDashboard = () => {
   const navigate = useNavigate();

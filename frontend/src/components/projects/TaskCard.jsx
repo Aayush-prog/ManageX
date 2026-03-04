@@ -1,4 +1,5 @@
 import { Draggable } from '@hello-pangea/dnd';
+import { fmtBSShort } from '../../utils/nepaliDate.js';
 
 const PRIORITY = {
   Low:      { dot: 'bg-gray-400',   badge: 'bg-gray-100 text-gray-600' },
@@ -10,8 +11,7 @@ const PRIORITY = {
 const initials = (name = '') =>
   name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
 
-const fmtDate = (iso) =>
-  iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
+const fmtDate = (iso) => iso ? fmtBSShort(iso) : null;
 
 const isOverdue = (iso) => iso && new Date(iso) < new Date();
 

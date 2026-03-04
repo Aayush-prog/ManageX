@@ -1,22 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
+import { fmtBSDate, fmtBSMonthYear, curADMonth, adMonthToBSLabel, adYearToBSYear } from '../../utils/nepaliDate.js';
 
 const fmtNPR   = (n = 0) => `Rs. ${Number(n).toLocaleString('en-IN')}`;
-const fmtDate  = (iso)   => iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
-const fmtMonth = (m)     => {
-  if (!m) return '—';
-  const [y, mo] = m.split('-');
-  return new Date(y, Number(mo) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-};
+const fmtDate  = fmtBSDate;
+const fmtMonth = fmtBSMonthYear;
+const currentMonthKey = curADMonth;
 
-const currentMonthKey = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-};
-
-const MONTHS = ['January','February','March','April','May','June',
-                'July','August','September','October','November','December'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const StatusBadge = ({ status }) => (
   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -200,11 +192,11 @@ const PayrollPage = () => {
             <div className="flex flex-wrap items-center gap-3">
               <select value={selMonth} onChange={(e) => setSelMonth(Number(e.target.value))}
                 className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+                {MONTHS.map((_, i) => <option key={i+1} value={i+1}>{adMonthToBSLabel(selYear, i+1)}</option>)}
               </select>
               <select value={selYear} onChange={(e) => setSelYear(Number(e.target.value))}
                 className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                {years.map((y) => <option key={y} value={y}>{y}</option>)}
+                {years.map((y) => <option key={y} value={y}>{adYearToBSYear(y)} BS</option>)}
               </select>
               <button onClick={handleGenerate} disabled={generating}
                 className="btn-primary text-sm disabled:opacity-50">

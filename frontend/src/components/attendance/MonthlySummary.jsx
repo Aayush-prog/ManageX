@@ -1,12 +1,9 @@
+import { fmtBSDateStr } from '../../utils/nepaliDate.js';
+
 const fmtTime = (iso) =>
   iso ? new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—';
 
-const fmtDate = (str) =>
-  str
-    ? new Date(str + 'T00:00:00').toLocaleDateString('en-US', {
-        weekday: 'short', month: 'short', day: 'numeric',
-      })
-    : '—';
+const fmtDate = fmtBSDateStr;
 
 const SummaryCard = ({ label, value, accent }) => (
   <div className={`stat-card border-l-4 ${accent}`}>

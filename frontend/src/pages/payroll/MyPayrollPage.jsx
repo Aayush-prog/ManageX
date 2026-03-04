@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
+import { fmtBSDate, fmtBSMonthYear } from '../../utils/nepaliDate.js';
 
-const fmtNPR  = (n = 0) => `Rs. ${Number(n).toLocaleString('en-IN')}`;
-const fmtDate = (iso)   => iso ? new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
-const fmtMonth = (m)    => {
-  if (!m) return '—';
-  const [y, mo] = m.split('-');
-  return new Date(y, Number(mo) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-};
+const fmtNPR   = (n = 0) => `Rs. ${Number(n).toLocaleString('en-IN')}`;
+const fmtDate  = fmtBSDate;
+const fmtMonth = fmtBSMonthYear;
 
 const StatusBadge = ({ status }) => (
   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${

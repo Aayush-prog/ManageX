@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
+import { curADMonth, curBSMonthLabel } from '../../utils/nepaliDate.js';
 
 const fmtNPR  = (n) => `Rs. ${(n ?? 0).toLocaleString('en-IN')}`;
-const curMonth = () => new Date().toISOString().slice(0, 7);
+const curMonth = curADMonth;
 
 const StatCard = ({ label, value, note, color }) => (
   <div className="stat-card">
@@ -62,7 +63,7 @@ const AdminDashboard = () => {
         {/* Finance KPIs */}
         <div>
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            Finance — {curMonth()}
+            Finance — {curBSMonthLabel()}
           </h3>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard

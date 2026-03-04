@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api.js';
+import { curADMonth } from '../../utils/nepaliDate.js';
 
 const fmtNPR = (n = 0) => `Rs. ${Number(n).toLocaleString('en-IN')}`;
-
-const currentMonthKey = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-};
+const currentMonthKey = curADMonth;
 
 const Row = ({ label, value, accent }) => (
   <div className={`flex items-center justify-between py-2 border-b border-gray-50 last:border-0`}>

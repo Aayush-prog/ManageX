@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api.js';
-
-const fmtDate = (iso) =>
-  iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+import { fmtBSShort, todayBSFull } from '../../utils/nepaliDate.js';
 
 const Header = ({ title }) => {
   const navigate   = useNavigate();
@@ -11,9 +9,7 @@ const Header = ({ title }) => {
   const [open,          setOpen]          = useState(false);
   const ref = useRef(null);
 
-  const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-  });
+  const today = todayBSFull();
 
   useEffect(() => {
     api.get('/notifications')
@@ -93,7 +89,7 @@ const Header = ({ title }) => {
                             {n.title}
                           </p>
                           <p className="text-sm text-gray-700 mt-0.5 leading-snug">{n.message}</p>
-                          <p className="text-xs text-gray-400 mt-1">Due {fmtDate(n.date)}</p>
+                          <p className="text-xs text-gray-400 mt-1">Due {fmtBSShort(n.date)}</p>
                         </div>
                       </div>
                     </button>

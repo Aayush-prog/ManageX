@@ -4,6 +4,7 @@ import ClockStatus from '../../components/attendance/ClockStatus.jsx';
 import MonthlySummary from '../../components/attendance/MonthlySummary.jsx';
 import { useAuth } from '../../store/AuthContext.jsx';
 import api from '../../services/api.js';
+import { fmtBSDateStr, adMonthToBSLabel, adYearToBSYear } from '../../utils/nepaliDate.js';
 
 const MONTHS = [
   'January','February','March','April','May','June',
@@ -76,8 +77,8 @@ const AttendancePage = () => {
             onChange={(e) => setMonth(Number(e.target.value))}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
-            {MONTHS.map((m, i) => (
-              <option key={m} value={i + 1}>{m}</option>
+            {MONTHS.map((_, i) => (
+              <option key={i + 1} value={i + 1}>{adMonthToBSLabel(year, i + 1)}</option>
             ))}
           </select>
 
@@ -88,7 +89,7 @@ const AttendancePage = () => {
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             {years.map((y) => (
-              <option key={y} value={y}>{y}</option>
+              <option key={y} value={y}>{adYearToBSYear(y)} BS</option>
             ))}
           </select>
         </div>
@@ -124,10 +125,7 @@ const AttendancePage = () => {
 const fmtTime = (iso) =>
   iso ? new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—';
 
-const fmtDate = (str) =>
-  str ? new Date(str + 'T00:00:00').toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric',
-  }) : '—';
+const fmtDate = fmtBSDateStr;
 
 const TeamAttendanceTable = ({ records = [] }) => {
   if (!records.length) {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import TaskDetailModal from '../../components/projects/TaskDetailModal.jsx';
 import api from '../../services/api.js';
+import { fmtBSDate } from '../../utils/nepaliDate.js';
 
 const PRIORITY_BADGE = {
   Low:      'bg-gray-100 text-gray-600',
@@ -19,8 +20,7 @@ const STATUS_BADGE = {
   Done:       'bg-green-50 text-green-700',
 };
 
-const fmtDate = (iso) =>
-  iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+const fmtDate = fmtBSDate;
 
 const isOverdue = (iso, status) => iso && status !== 'Done' && new Date(iso) < new Date();
 

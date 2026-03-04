@@ -4,6 +4,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import CreateProjectModal from '../../components/projects/CreateProjectModal.jsx';
 import api from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
+import { fmtBSDate } from '../../utils/nepaliDate.js';
 
 const STATUS_BADGE = {
   Planning:  'bg-gray-100 text-gray-600',
@@ -11,8 +12,7 @@ const STATUS_BADGE = {
   Completed: 'bg-blue-50 text-blue-700',
 };
 
-const fmtDate = (iso) =>
-  iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+const fmtDate = fmtBSDate;
 
 const ProjectCard = ({ project, onClick }) => {
   const pct = project.completionPercentage ?? 0;

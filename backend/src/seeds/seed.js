@@ -12,7 +12,7 @@ import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 
 dotenv.config({
-  path: resolve(dirname(fileURLToPath(import.meta.url)), "../../../.env"),
+  path: resolve(dirname(fileURLToPath(import.meta.url)), "../../.env"),
 });
 
 import User from "../models/User.js";
