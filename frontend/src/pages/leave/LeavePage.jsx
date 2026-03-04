@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
+import { useAuth } from '../../store/AuthContext.jsx';
+import { downloadLeavePDF } from '../../utils/pdfExport.js';
+import { fmtBSDate, fmtBSDateStr } from '../../utils/nepaliDate.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const fmtDate = (d) => {
-  if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-};
+const fmtDate = fmtBSDate;
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -70,10 +70,12 @@ const RequestLeaveModal = ({ onClose, onRequested }) => {
             <div>
               <label className={labelCls}>Start Date *</label>
               <input type="date" className={inputCls} value={form.startDate} onChange={(e) => set('startDate', e.target.value)} />
+              {form.startDate && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.startDate)}</p>}
             </div>
             <div>
               <label className={labelCls}>End Date *</label>
               <input type="date" className={inputCls} value={form.endDate} onChange={(e) => set('endDate', e.target.value)} />
+              {form.endDate && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.endDate)}</p>}
             </div>
           </div>
           {days > 0 && (
@@ -122,6 +124,7 @@ const QuotaCard = ({ label, used, total, color }) => {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const LeavePage = () => {
+  const { user } = useAuth();
   const [leaves,   setLeaves]   = useState([]);
   const [quota,    setQuota]    = useState(null);
   const [loading,  setLoading]  = useState(true);
@@ -165,7 +168,17 @@ const LeavePage = () => {
               ))}
             </select>
           </div>
-          <button onClick={() => setShowForm(true)} className="btn-primary text-sm">+ Request Leave</button>
+          <div className="flex items-center gap-2">
+            {!loading && leaves.length > 0 && (
+              <button
+                onClick={() => downloadLeavePDF({ leaves, quota, userName: user?.name ?? 'User', year })}
+                className="text-sm px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+              >
+                ↓ Download PDF
+              </button>
+            )}
+            <button onClick={() => setShowForm(true)} className="btn-primary text-sm">+ Request Leave</button>
+          </div>
         </div>
 
         {/* Quota cards */}

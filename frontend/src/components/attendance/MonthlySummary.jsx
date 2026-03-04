@@ -1,7 +1,4 @@
-import { fmtBSDateStr } from '../../utils/nepaliDate.js';
-
-const fmtTime = (iso) =>
-  iso ? new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—';
+import { fmtBSDateStr, fmtTime } from '../../utils/nepaliDate.js';
 
 const fmtDate = fmtBSDateStr;
 

@@ -1,5 +1,8 @@
 import Project from '../models/Project.js';
 import Task    from '../models/Task.js';
+import User    from '../models/User.js';
+import { sendEmail } from '../utils/email.js';
+import * as tpl from '../utils/emailTemplates.js';
 
 const TASK_STATUSES = ['Backlog', 'Todo', 'InProgress', 'Review', 'Done'];
 
@@ -42,7 +45,27 @@ export const getProjectsService = async (userId, permissionLevel) => {
 
 export const createProjectService = async (data, userId) => {
   const project = await Project.create({ ...data, createdBy: userId });
-  return project.populate(['members', 'createdBy']);
+  await project.populate([
+    { path: 'members',   select: 'name email' },
+    { path: 'createdBy', select: 'name' },
+  ]);
+
+  // Email each member
+  if (project.members?.length) {
+    for (const member of project.members) {
+      if (member.email && member._id.toString() !== userId.toString()) {
+        const { subject, html } = tpl.projectAdded({
+          memberName:  member.name,
+          projectName: project.name,
+          description: project.description,
+          createdBy:   project.createdBy?.name ?? 'Management',
+        });
+        sendEmail({ to: member.email, subject, html });
+      }
+    }
+  }
+
+  return project;
 };
 
 export const getProjectByIdService = async (projectId, userId, permissionLevel) => {
@@ -101,31 +124,75 @@ export const updateProjectService = async (projectId, data) => {
 // ── Tasks ─────────────────────────────────────────────────────────────────────
 
 export const createTaskService = async (projectId, data, userId) => {
-  const project = await Project.findById(projectId);
+  const project = await Project.findById(projectId).populate('createdBy', 'name').lean();
   if (!project) {
     const err = new Error('Project not found');
     err.statusCode = 404;
     throw err;
   }
   const task = await Task.create({ ...data, project: projectId, createdBy: userId });
-  return Task.findById(task._id).populate('assignedTo', 'name email role');
+  const populated = await Task.findById(task._id).populate('assignedTo', 'name email role');
+
+  // Email assigned user (if set and not the creator)
+  if (populated.assignedTo?.email && populated.assignedTo._id.toString() !== userId.toString()) {
+    const creator = await User.findById(userId).select('name').lean();
+    const { subject, html } = tpl.taskAssigned({
+      assigneeName: populated.assignedTo.name,
+      taskTitle:    populated.title,
+      projectName:  project.name,
+      priority:     populated.priority,
+      dueDate:      populated.dueDate ? new Date(populated.dueDate).toISOString().slice(0, 10) : null,
+      assignedBy:   creator?.name ?? 'Management',
+    });
+    sendEmail({ to: populated.assignedTo.email, subject, html });
+  }
+
+  return populated;
 };
 
-export const updateTaskService = async (taskId, updates) => {
+export const updateTaskService = async (taskId, updates, updatedByUserId) => {
   const ALLOWED = ['title', 'description', 'assignedTo', 'priority', 'dueDate', 'status'];
   const filtered = Object.fromEntries(
     Object.entries(updates).filter(([k]) => ALLOWED.includes(k))
   );
+
+  // Capture old assignedTo before update (to detect reassignment)
+  const before = await Task.findById(taskId).select('assignedTo').lean();
+
   const task = await Task.findByIdAndUpdate(taskId, filtered, {
     new: true,
     runValidators: true,
-  }).populate('assignedTo', 'name email role');
+  }).populate(['assignedTo', { path: 'project', select: 'name' }]);
 
   if (!task) {
     const err = new Error('Task not found');
     err.statusCode = 404;
     throw err;
   }
+
+  // Email newly assigned user if assignedTo changed
+  const newAssignee = task.assignedTo;
+  const oldAssigneeId = before?.assignedTo?.toString();
+  const newAssigneeId = newAssignee?._id?.toString();
+  if (
+    filtered.assignedTo &&
+    newAssigneeId &&
+    newAssigneeId !== oldAssigneeId &&
+    newAssignee.email &&
+    newAssigneeId !== updatedByUserId?.toString()
+  ) {
+    const updater = updatedByUserId ? await User.findById(updatedByUserId).select('name').lean() : null;
+    const { subject, html } = tpl.taskAssigned({
+      assigneeName: newAssignee.name,
+      taskTitle:    task.title,
+      projectName:  task.project?.name ?? 'a project',
+      priority:     task.priority,
+      dueDate:      task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : null,
+      assignedBy:   updater?.name ?? 'Management',
+    });
+    sendEmail({ to: newAssignee.email, subject, html });
+  }
+
   return task;
 };
 

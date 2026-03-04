@@ -50,7 +50,7 @@ export const createTask = async (req, res, next) => {
 
 export const updateTask = async (req, res, next) => {
   try {
-    const task = await updateTaskService(req.params.id, req.body);
+    const task = await updateTaskService(req.params.id, req.body, req.user.id);
     return res.json({ success: true, data: task });
   } catch (err) { next(err); }
 };

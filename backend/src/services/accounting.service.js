@@ -93,6 +93,29 @@ export const getBudgetsService = async () =>
     .populate('project', 'name status')
     .sort({ createdAt: -1 });
 
+// ── Attachments ───────────────────────────────────────────────────────────────
+
+export const attachToExpenseService = async (id, filePath) => {
+  const doc = await Expense.findByIdAndUpdate(id, { attachment: filePath }, { new: true })
+    .populate('createdBy', 'name').populate('approvedBy', 'name').populate('project', 'name');
+  if (!doc) throw new Error('Expense not found');
+  return doc;
+};
+
+export const attachToBillService = async (id, filePath) => {
+  const doc = await Bill.findByIdAndUpdate(id, { attachment: filePath }, { new: true })
+    .populate('createdBy', 'name').populate('project', 'name');
+  if (!doc) throw new Error('Bill not found');
+  return doc;
+};
+
+export const attachToDepositService = async (id, filePath) => {
+  const doc = await ProjectDeposit.findByIdAndUpdate(id, { attachment: filePath }, { new: true })
+    .populate('createdBy', 'name').populate('project', 'name');
+  if (!doc) throw new Error('Deposit not found');
+  return doc;
+};
+
 // ── Project Deposits ──────────────────────────────────────────────────────────
 
 export const addDepositService = async (data, userId) => {

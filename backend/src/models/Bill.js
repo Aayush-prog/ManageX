@@ -6,6 +6,7 @@ const billSchema = new mongoose.Schema({
   amount:      { type: Number, required: true, min: 0 },
   dueDate:     { type: Date },
   project:     { type: mongoose.Schema.Types.ObjectId, ref: 'Project', default: null },
+  attachment:  { type: String, default: null },
   status:      { type: String, enum: ['Unpaid', 'Paid'], default: 'Unpaid' },
   paidAt:      { type: Date },
   createdBy:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

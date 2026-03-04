@@ -23,6 +23,12 @@ const env = {
   // Check-in allowed window (outside this, login works but no attendance record created)
   CHECKIN_START_HOUR: parseInt(process.env.CHECKIN_START_HOUR, 10) || 11, // 6:00 AM
   CHECKIN_END_HOUR: parseInt(process.env.CHECKIN_END_HOUR, 10) || 19, // 9:00 PM
+  // Email (Hostinger SMTP)
+  SMTP_HOST:      process.env.SMTP_HOST      || 'smtp.hostinger.com',
+  SMTP_PORT:      parseInt(process.env.SMTP_PORT, 10) || 465,
+  SMTP_USER:      process.env.SMTP_USER      || '',
+  SMTP_PASS:      process.env.SMTP_PASS      || '',
+  SMTP_FROM_NAME: process.env.SMTP_FROM_NAME || 'ManageX',
 };
 
 const required = [

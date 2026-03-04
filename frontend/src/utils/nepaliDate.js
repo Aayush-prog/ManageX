@@ -95,6 +95,15 @@ export const todayBSFull = () => {
   } catch { return ''; }
 };
 
+// "HH:MM" — 24-hour time from any ISO string or Date
+export const fmtTime = (isoOrDate) => {
+  if (!isoOrDate) return '—';
+  try {
+    const d = isoOrDate instanceof Date ? isoOrDate : new Date(isoOrDate);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  } catch { return '—'; }
+};
+
 // "Falgun 20, 2082 HH:MM" for datetime display
 export const fmtBSDateTime = (isoOrDate) => {
   if (!isoOrDate) return '—';

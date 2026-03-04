@@ -3,6 +3,7 @@ import {
   addBillService, getBillsService, markBillPaidService,
   setBudgetService, getBudgetsService,
   addDepositService, getDepositsService, getProjectFinancialSummaryService,
+  attachToExpenseService, attachToBillService, attachToDepositService,
   getSummaryService,
 } from '../services/accounting.service.js';
 
@@ -30,3 +31,13 @@ export const getSummary    = async (req, res) => {
 export const addDeposit            = async (req, res) => { try { ok(res, await addDepositService(req.body, req.user.id), 201);                                  } catch (e) { err(res, e); } };
 export const getDeposits           = async (req, res) => { try { ok(res, await getDepositsService(req.query));                                                   } catch (e) { err(res, e); } };
 export const getProjectFinancials  = async (req, res) => { try { ok(res, await getProjectFinancialSummaryService(req.params.projectId));                         } catch (e) { err(res, e); } };
+
+const attachHandler = (svc) => async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+    ok(res, await svc(req.params.id, `/uploads/${req.file.filename}`));
+  } catch (e) { err(res, e); }
+};
+export const attachExpense = attachHandler(attachToExpenseService);
+export const attachBill    = attachHandler(attachToBillService);
+export const attachDeposit = attachHandler(attachToDepositService);

@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
-import { fmtBSDate, curADMonth } from '../../utils/nepaliDate.js';
+import { fmtBSDate, fmtBSDateStr, curADMonth } from '../../utils/nepaliDate.js';
+import { downloadExpensesPDF, downloadBillsPDF, downloadDepositsPDF } from '../../utils/pdfExport.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -13,11 +14,6 @@ const curMonth = curADMonth;
 const CATEGORIES = ['Travel', 'Equipment', 'Software', 'Marketing', 'Operations', 'Other'];
 const DEPOSIT_CATEGORIES = ['Client Payment', 'Advance', 'Reimbursement', 'Grant', 'Investment', 'Other'];
 
-const STATUS_EXPENSE = {
-  Pending:  'bg-amber-50  text-amber-700',
-  Approved: 'bg-green-50  text-green-700',
-  Rejected: 'bg-red-50    text-red-700',
-};
 const STATUS_BILL = {
   Unpaid: 'bg-red-50   text-red-700',
   Paid:   'bg-green-50 text-green-700',
@@ -25,6 +21,76 @@ const STATUS_BILL = {
 
 const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
 const labelCls = 'block text-sm font-medium text-gray-700 mb-1';
+
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:5000';
+
+const isImage = (url) => /\.(jpg|jpeg|png|gif|webp)$/i.test(url ?? '');
+
+// ── Attachment cell — shows link or upload button ─────────────────────────────
+
+const AttachCell = ({ attachment, uploadUrl, onAttached }) => {
+  const ref = useRef(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const { data } = await api.post(uploadUrl, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      onAttached(data.data);
+    } catch { /* ignore */ } finally {
+      setUploading(false);
+      if (ref.current) ref.current.value = '';
+    }
+  };
+
+  if (attachment) {
+    return (
+      <a
+        href={`${API_BASE}${attachment}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="View attachment"
+        className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline"
+      >
+        {isImage(attachment) ? '🖼' : '📄'} View
+      </a>
+    );
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => ref.current?.click()}
+        disabled={uploading}
+        className="text-xs text-gray-400 hover:text-brand-600 disabled:opacity-50"
+        title="Attach file"
+      >
+        {uploading ? '…' : '📎'}
+      </button>
+      <input ref={ref} type="file" className="hidden" onChange={handleFile}
+        accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" />
+    </>
+  );
+};
+
+// ── File picker used inside Add modals ────────────────────────────────────────
+
+const FilePicker = ({ value, onChange }) => (
+  <div>
+    <label className={labelCls}>Attachment (optional)</label>
+    <input
+      type="file"
+      className="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer"
+      accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+      onChange={(e) => onChange(e.target.files[0] ?? null)}
+    />
+    {value && <p className="text-xs text-gray-400 mt-1 truncate">{value.name}</p>}
+  </div>
+);
 
 // ── Inline Modals ─────────────────────────────────────────────────────────────
 
@@ -42,6 +108,7 @@ const Modal = ({ title, onClose, children }) => (
 
 const AddExpenseModal = ({ projects, onClose, onCreated }) => {
   const [form,   setForm]   = useState({ title: '', amount: '', category: 'Other', project: '', date: todayISO(), notes: '' });
+  const [file,   setFile]   = useState(null);
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
@@ -53,7 +120,14 @@ const AddExpenseModal = ({ projects, onClose, onCreated }) => {
     try {
       const payload = { ...form, amount: Number(form.amount), project: form.project || undefined };
       const { data } = await api.post('/accounting/expenses', payload);
-      onCreated(data.data); onClose();
+      let record = data.data;
+      if (file) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const { data: ud } = await api.post(`/accounting/expenses/${record._id}/attachment`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        record = ud.data;
+      }
+      onCreated(record); onClose();
     } catch (err) { setError(err.response?.data?.message ?? 'Failed to add expense'); }
     finally { setSaving(false); }
   };
@@ -73,6 +147,7 @@ const AddExpenseModal = ({ projects, onClose, onCreated }) => {
           <div>
             <label className={labelCls}>Date</label>
             <input type="date" className={inputCls} value={form.date} onChange={(e) => set('date', e.target.value)} />
+            {form.date && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.date)}</p>}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -94,6 +169,7 @@ const AddExpenseModal = ({ projects, onClose, onCreated }) => {
           <label className={labelCls}>Notes</label>
           <textarea className={inputCls} rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} />
         </div>
+        <FilePicker value={file} onChange={setFile} />
         {error && <p className="text-sm text-red-600">{error}</p>}
         <div className="flex justify-end gap-3">
           <button type="button" onClick={onClose} className="text-sm px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
@@ -106,6 +182,7 @@ const AddExpenseModal = ({ projects, onClose, onCreated }) => {
 
 const AddBillModal = ({ projects, onClose, onCreated }) => {
   const [form,   setForm]   = useState({ vendorName: '', description: '', amount: '', dueDate: '', project: '' });
+  const [file,   setFile]   = useState(null);
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
@@ -117,7 +194,14 @@ const AddBillModal = ({ projects, onClose, onCreated }) => {
     try {
       const payload = { ...form, amount: Number(form.amount), dueDate: form.dueDate || undefined, project: form.project || undefined };
       const { data } = await api.post('/accounting/bills', payload);
-      onCreated(data.data); onClose();
+      let record = data.data;
+      if (file) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const { data: ud } = await api.post(`/accounting/bills/${record._id}/attachment`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        record = ud.data;
+      }
+      onCreated(record); onClose();
     } catch (err) { setError(err.response?.data?.message ?? 'Failed to add bill'); }
     finally { setSaving(false); }
   };
@@ -141,6 +225,7 @@ const AddBillModal = ({ projects, onClose, onCreated }) => {
           <div>
             <label className={labelCls}>Due Date</label>
             <input type="date" className={inputCls} value={form.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
+            {form.dueDate && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.dueDate)}</p>}
           </div>
         </div>
         <div>
@@ -150,6 +235,7 @@ const AddBillModal = ({ projects, onClose, onCreated }) => {
             {projects.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
           </select>
         </div>
+        <FilePicker value={file} onChange={setFile} />
         {error && <p className="text-sm text-red-600">{error}</p>}
         <div className="flex justify-end gap-3">
           <button type="button" onClick={onClose} className="text-sm px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
@@ -219,14 +305,7 @@ const ExpensesTab = ({ projects }) => {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleReview = async (id, action) => {
-    try {
-      const { data } = await api.patch(`/accounting/expenses/${id}/status`, { action });
-      setExpenses((prev) => prev.map((e) => e._id === id ? data.data : e));
-    } catch { /* ignore */ }
-  };
-
-  const totalApproved = expenses.filter((e) => e.status === 'Approved').reduce((s, e) => s + e.amount, 0);
+  const total = expenses.reduce((s, e) => s + e.amount, 0);
 
   return (
     <div className="space-y-4">
@@ -234,9 +313,19 @@ const ExpensesTab = ({ projects }) => {
         <div className="flex items-center gap-3">
           <input type="month" className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             value={month} onChange={(e) => setMonth(e.target.value)} />
-          <span className="text-sm text-gray-500">Approved: <strong>{fmtNPR(totalApproved)}</strong></span>
+          <span className="text-sm text-gray-500">Total: <strong>{fmtNPR(total)}</strong></span>
         </div>
-        <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">+ Add Expense</button>
+        <div className="flex items-center gap-2">
+          {expenses.length > 0 && (
+            <button
+              onClick={() => downloadExpensesPDF({ expenses, month })}
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+            >
+              ↓ PDF
+            </button>
+          )}
+          <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">+ Add Expense</button>
+        </div>
       </div>
 
       <div className="card p-0 overflow-hidden">
@@ -253,8 +342,8 @@ const ExpensesTab = ({ projects }) => {
                 <th className="text-left px-4 py-3">Category</th>
                 <th className="text-left px-4 py-3">Project</th>
                 <th className="text-right px-4 py-3">Amount</th>
-                <th className="text-left px-4 py-3">Status</th>
-                <th className="text-left px-4 py-3">Actions</th>
+                <th className="text-left px-4 py-3">Added By</th>
+                <th className="text-left px-4 py-3">File</th>
               </tr>
             </thead>
             <tbody>
@@ -268,25 +357,13 @@ const ExpensesTab = ({ projects }) => {
                   <td className="px-4 py-3 text-gray-600">{e.category}</td>
                   <td className="px-4 py-3 text-gray-500">{e.project?.name ?? '—'}</td>
                   <td className="px-4 py-3 text-right font-medium text-gray-800 whitespace-nowrap">{fmtNPR(e.amount)}</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{e.createdBy?.name ?? '—'}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_EXPENSE[e.status]}`}>{e.status}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {e.status === 'Pending' && (
-                      <div className="flex gap-1">
-                        <button onClick={() => handleReview(e._id, 'Approved')}
-                          className="text-xs px-2 py-1 bg-green-50 text-green-700 rounded hover:bg-green-100 transition-colors">
-                          Approve
-                        </button>
-                        <button onClick={() => handleReview(e._id, 'Rejected')}
-                          className="text-xs px-2 py-1 bg-red-50 text-red-700 rounded hover:bg-red-100 transition-colors">
-                          Reject
-                        </button>
-                      </div>
-                    )}
-                    {e.status !== 'Pending' && (
-                      <span className="text-xs text-gray-400">{e.approvedBy?.name ?? '—'}</span>
-                    )}
+                    <AttachCell
+                      attachment={e.attachment}
+                      uploadUrl={`/accounting/expenses/${e._id}/attachment`}
+                      onAttached={(updated) => setExpenses((prev) => prev.map((x) => x._id === e._id ? updated : x))}
+                    />
                   </td>
                 </tr>
               ))}
@@ -334,7 +411,17 @@ const BillsTab = ({ projects }) => {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <span className="text-sm text-gray-500">Outstanding: <strong className="text-red-600">{fmtNPR(unpaidTotal)}</strong></span>
-        <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">+ Add Bill</button>
+        <div className="flex items-center gap-2">
+          {bills.length > 0 && (
+            <button
+              onClick={() => downloadBillsPDF({ bills })}
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+            >
+              ↓ PDF
+            </button>
+          )}
+          <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">+ Add Bill</button>
+        </div>
       </div>
 
       <div className="card p-0 overflow-hidden">
@@ -352,6 +439,7 @@ const BillsTab = ({ projects }) => {
                 <th className="text-right px-4 py-3">Amount</th>
                 <th className="text-left px-4 py-3">Due Date</th>
                 <th className="text-left px-4 py-3">Status</th>
+                <th className="text-left px-4 py-3">File</th>
                 <th className="text-left px-4 py-3">Action</th>
               </tr>
             </thead>
@@ -369,6 +457,13 @@ const BillsTab = ({ projects }) => {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BILL[b.status]}`}>{b.status}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <AttachCell
+                        attachment={b.attachment}
+                        uploadUrl={`/accounting/bills/${b._id}/attachment`}
+                        onAttached={(updated) => setBills((prev) => prev.map((x) => x._id === b._id ? updated : x))}
+                      />
                     </td>
                     <td className="px-4 py-3">
                       {b.status === 'Unpaid' ? (
@@ -492,6 +587,7 @@ const BudgetsTab = ({ projects }) => {
 
 const AddDepositModal = ({ projects, onClose, onCreated }) => {
   const [form,   setForm]   = useState({ project: '', title: '', amount: '', category: 'Client Payment', date: todayISO(), description: '' });
+  const [file,   setFile]   = useState(null);
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
@@ -503,7 +599,14 @@ const AddDepositModal = ({ projects, onClose, onCreated }) => {
     try {
       const payload = { ...form, amount: Number(form.amount) };
       const { data } = await api.post('/accounting/deposits', payload);
-      onCreated(data.data); onClose();
+      let record = data.data;
+      if (file) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const { data: ud } = await api.post(`/accounting/deposits/${record._id}/attachment`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        record = ud.data;
+      }
+      onCreated(record); onClose();
     } catch (err) { setError(err.response?.data?.message ?? 'Failed to add deposit'); }
     finally { setSaving(false); }
   };
@@ -530,6 +633,7 @@ const AddDepositModal = ({ projects, onClose, onCreated }) => {
           <div>
             <label className={labelCls}>Date</label>
             <input type="date" className={inputCls} value={form.date} onChange={(e) => set('date', e.target.value)} />
+            {form.date && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.date)}</p>}
           </div>
         </div>
         <div>
@@ -542,6 +646,7 @@ const AddDepositModal = ({ projects, onClose, onCreated }) => {
           <label className={labelCls}>Description</label>
           <textarea className={inputCls} rows={2} value={form.description} onChange={(e) => set('description', e.target.value)} />
         </div>
+        <FilePicker value={file} onChange={setFile} />
         {error && <p className="text-sm text-red-600">{error}</p>}
         <div className="flex justify-end gap-3">
           <button type="button" onClick={onClose} className="text-sm px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
@@ -589,7 +694,17 @@ const DepositsTab = ({ projects }) => {
           </select>
           <span className="text-sm text-gray-500">Total: <strong className="text-green-600">{fmtNPR(totalDeposits)}</strong></span>
         </div>
-        <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">+ Add Deposit</button>
+        <div className="flex items-center gap-2">
+          {deposits.length > 0 && (
+            <button
+              onClick={() => downloadDepositsPDF({ deposits, month })}
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+            >
+              ↓ PDF
+            </button>
+          )}
+          <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">+ Add Deposit</button>
+        </div>
       </div>
 
       <div className="card p-0 overflow-hidden">
@@ -606,6 +721,7 @@ const DepositsTab = ({ projects }) => {
                 <th className="text-left px-4 py-3">Project</th>
                 <th className="text-left px-4 py-3">Category</th>
                 <th className="text-right px-4 py-3">Amount</th>
+                <th className="text-left px-4 py-3">File</th>
                 <th className="text-left px-4 py-3">Added By</th>
               </tr>
             </thead>
@@ -622,6 +738,13 @@ const DepositsTab = ({ projects }) => {
                     <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">{d.category}</span>
                   </td>
                   <td className="px-4 py-3 text-right font-semibold text-green-700 whitespace-nowrap">{fmtNPR(d.amount)}</td>
+                  <td className="px-4 py-3">
+                    <AttachCell
+                      attachment={d.attachment}
+                      uploadUrl={`/accounting/deposits/${d._id}/attachment`}
+                      onAttached={(updated) => setDeposits((prev) => prev.map((x) => x._id === d._id ? updated : x))}
+                    />
+                  </td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{d.createdBy?.name ?? '—'}</td>
                 </tr>
               ))}

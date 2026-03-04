@@ -9,7 +9,7 @@ const expenseSchema = new mongoose.Schema({
   project:    { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
   createdBy:  { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  status:     { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
+  status:     { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Approved' },
   date:       { type: Date, default: Date.now },
   notes:      { type: String, trim: true },
   attachment: { type: String },

@@ -4,7 +4,8 @@ import ClockStatus from '../../components/attendance/ClockStatus.jsx';
 import MonthlySummary from '../../components/attendance/MonthlySummary.jsx';
 import { useAuth } from '../../store/AuthContext.jsx';
 import api from '../../services/api.js';
-import { fmtBSDateStr, adMonthToBSLabel, adYearToBSYear } from '../../utils/nepaliDate.js';
+import { fmtBSDateStr, adMonthToBSLabel, adYearToBSYear, fmtTime } from '../../utils/nepaliDate.js';
+import { downloadAttendancePDF } from '../../utils/pdfExport.js';
 
 const MONTHS = [
   'January','February','March','April','May','June',
@@ -92,6 +93,21 @@ const AttendancePage = () => {
               <option key={y} value={y}>{adYearToBSYear(y)} BS</option>
             ))}
           </select>
+
+          {/* Download PDF (my attendance only) */}
+          {view === 'me' && data && !loading && (
+            <button
+              onClick={() => downloadAttendancePDF({
+                records:  data.records ?? [],
+                summary:  data.summary ?? {},
+                userName: user?.name ?? 'User',
+                month:    `${year}-${String(month).padStart(2, '0')}`,
+              })}
+              className="ml-auto flex items-center gap-1.5 text-sm px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+            >
+              ↓ Download PDF
+            </button>
+          )}
         </div>
 
         {/* Content */}
@@ -121,9 +137,6 @@ const AttendancePage = () => {
 };
 
 // ── Team table (flat list, grouped by user name in display) ──────────────────
-
-const fmtTime = (iso) =>
-  iso ? new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—';
 
 const fmtDate = fmtBSDateStr;
 

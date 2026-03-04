@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api.js';
+import { fmtBSDateStr } from '../../utils/nepaliDate.js';
 
 const INITIAL = { name: '', description: '', startDate: '', endDate: '', status: 'Planning', members: [] };
 
@@ -67,10 +68,12 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
             <div>
               <label className={labelCls}>Start Date</label>
               <input type="date" className={inputCls} value={form.startDate} onChange={(e) => set('startDate', e.target.value)} />
+              {form.startDate && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.startDate)}</p>}
             </div>
             <div>
               <label className={labelCls}>End Date</label>
               <input type="date" className={inputCls} value={form.endDate} onChange={(e) => set('endDate', e.target.value)} />
+              {form.endDate && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.endDate)}</p>}
             </div>
           </div>
 

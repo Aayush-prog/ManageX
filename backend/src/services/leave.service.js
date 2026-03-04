@@ -1,4 +1,7 @@
 import Leave from '../models/Leave.js';
+import User  from '../models/User.js';
+import { sendEmail } from '../utils/email.js';
+import * as tpl from '../utils/emailTemplates.js';
 
 const SICK_QUOTA   = 7; // days per year
 const ANNUAL_QUOTA = 7; // days per year
@@ -58,7 +61,17 @@ export const requestLeaveService = async (userId, { type, startDate, endDate, re
   }
 
   const leave = await Leave.create({ user: userId, type, startDate, endDate, days, reason, year });
-  return leave.populate('user', 'name email role');
+  await leave.populate('user', 'name email role');
+
+  // Notify all managers and admins
+  const managers = await User.find({ permissionLevel: { $in: ['manager', 'admin'] }, isActive: true }).select('email').lean();
+  const managerEmails = managers.map((m) => m.email).filter(Boolean);
+  if (managerEmails.length) {
+    const { subject, html } = tpl.leaveRequested({ employeeName: leave.user.name, type, startDate, endDate, days, reason });
+    sendEmail({ to: managerEmails, subject, html });
+  }
+
+  return leave;
 };
 
 // ── My leaves ─────────────────────────────────────────────────────────────────
@@ -113,11 +126,18 @@ export const approveLeaveService = async (leaveId, approverId) => {
   leave.approvedBy = approverId;
   leave.approvedAt = new Date();
   await leave.save();
+  await leave.populate([{ path: 'user', select: 'name email role' }, { path: 'approvedBy', select: 'name' }]);
 
-  return leave.populate([
-    { path: 'user',       select: 'name email role' },
-    { path: 'approvedBy', select: 'name' },
-  ]);
+  if (leave.user?.email) {
+    const { subject, html } = tpl.leaveApproved({
+      employeeName: leave.user.name, type: leave.type,
+      startDate: leave.startDate, endDate: leave.endDate,
+      days: leave.days, approvedBy: leave.approvedBy?.name ?? 'Management',
+    });
+    sendEmail({ to: leave.user.email, subject, html });
+  }
+
+  return leave;
 };
 
 export const rejectLeaveService = async (leaveId, approverId, rejectionReason) => {
@@ -130,11 +150,19 @@ export const rejectLeaveService = async (leaveId, approverId, rejectionReason) =
   leave.approvedAt      = new Date();
   leave.rejectionReason = rejectionReason || null;
   await leave.save();
+  await leave.populate([{ path: 'user', select: 'name email role' }, { path: 'approvedBy', select: 'name' }]);
 
-  return leave.populate([
-    { path: 'user',       select: 'name email role' },
-    { path: 'approvedBy', select: 'name' },
-  ]);
+  if (leave.user?.email) {
+    const { subject, html } = tpl.leaveRejected({
+      employeeName: leave.user.name, type: leave.type,
+      startDate: leave.startDate, endDate: leave.endDate,
+      days: leave.days, approvedBy: leave.approvedBy?.name ?? 'Management',
+      reason: leave.rejectionReason,
+    });
+    sendEmail({ to: leave.user.email, subject, html });
+  }
+
+  return leave;
 };
 
 // ── Quota check ───────────────────────────────────────────────────────────────

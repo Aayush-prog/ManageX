@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api.js';
+import { fmtTime } from '../../utils/nepaliDate.js';
 
-const fmt = (iso) =>
-  iso
-    ? new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-    : '—';
+const fmt = fmtTime;
 
 const hoursNow = (clockIn) =>
   parseFloat(((Date.now() - new Date(clockIn)) / 3_600_000).toFixed(2));

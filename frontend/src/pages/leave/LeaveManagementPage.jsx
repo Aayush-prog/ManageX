@@ -1,13 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
+import { downloadAllLeavesPDF } from '../../utils/pdfExport.js';
+import { fmtBSDate } from '../../utils/nepaliDate.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const fmtDate = (d) => {
-  if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-};
+const fmtDate = fmtBSDate;
 
 const STATUS_CLS = {
   Pending:  'bg-amber-50  text-amber-700',
@@ -107,7 +106,7 @@ const LeaveManagementPage = () => {
       <div className="space-y-5">
 
         {/* Filters */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap justify-between">
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium text-gray-600">Year:</label>
             <select
@@ -141,6 +140,14 @@ const LeaveManagementPage = () => {
               ))}
             </div>
           </div>
+          {!loading && leaves.length > 0 && (
+            <button
+              onClick={() => downloadAllLeavesPDF({ leaves, year })}
+              className="text-sm px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+            >
+              ↓ Download PDF
+            </button>
+          )}
         </div>
 
         {/* Table */}
