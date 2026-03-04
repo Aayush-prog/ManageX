@@ -10,7 +10,7 @@ router.use(authenticate);
 // Returns overdue tasks (assigned to me) + overdue bills (finance/ceo only)
 router.get('/', async (req, res, next) => {
   try {
-    const { id: userId, role } = req.user;
+    const { id: userId, permissionLevel } = req.user;
     const now = new Date();
     const notifications = [];
 
@@ -35,8 +35,8 @@ router.get('/', async (req, res, next) => {
       });
     }
 
-    // Overdue bills — finance and ceo only
-    if (['finance', 'ceo'].includes(role)) {
+    // Overdue bills — finance and admin only
+    if (['finance', 'admin'].includes(permissionLevel)) {
       const overdueBills = await Bill.find({
         status:  'Unpaid',
         dueDate: { $lt: now, $ne: null },

@@ -5,8 +5,8 @@ const TASK_STATUSES = ['Backlog', 'Todo', 'InProgress', 'Review', 'Done'];
 
 // ── Projects ──────────────────────────────────────────────────────────────────
 
-export const getProjectsService = async (userId, role) => {
-  const query = ['manager', 'ceo'].includes(role) ? {} : { members: userId };
+export const getProjectsService = async (userId, permissionLevel) => {
+  const query = ['manager', 'admin'].includes(permissionLevel) ? {} : { members: userId };
 
   const projects = await Project.find(query)
     .populate('members',   'name email role')
@@ -45,7 +45,7 @@ export const createProjectService = async (data, userId) => {
   return project.populate(['members', 'createdBy']);
 };
 
-export const getProjectByIdService = async (projectId, userId, role) => {
+export const getProjectByIdService = async (projectId, userId, permissionLevel) => {
   const project = await Project.findById(projectId)
     .populate('members',   'name email role')
     .populate('createdBy', 'name')
@@ -57,8 +57,8 @@ export const getProjectByIdService = async (projectId, userId, role) => {
     throw err;
   }
 
-  // Access: managers/CEO always; others must be a member
-  if (!['manager', 'ceo'].includes(role)) {
+  // Access: managers/admin always; others must be a member
+  if (!['manager', 'admin'].includes(permissionLevel)) {
     const isMember = project.members.some((m) => m._id.toString() === userId);
     if (!isMember) {
       const err = new Error('Access denied');

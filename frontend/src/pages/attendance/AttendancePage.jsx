@@ -20,8 +20,8 @@ const AttendancePage = () => {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState(null);
 
-  // Manager/CEO can view team data
-  const canViewTeam = ['manager', 'ceo'].includes(user?.role);
+  // Manager/Admin can view team data
+  const canViewTeam = ['manager', 'admin'].includes(user?.permissionLevel);
   const [view, setView] = useState('me'); // 'me' | 'team'
 
   useEffect(() => {

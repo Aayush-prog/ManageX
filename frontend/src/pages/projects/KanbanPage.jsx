@@ -37,7 +37,7 @@ const KanbanPage = () => {
   const [createStatus, setCreateStatus] = useState(null); // which column's + was clicked
   const [detailTask,  setDetailTask]  = useState(null);
 
-  const canManage = ['manager', 'ceo'].includes(user?.role);
+  const canManage = ['manager', 'admin'].includes(user?.permissionLevel);
 
   useEffect(() => {
     api.get(`/projects/${id}`)

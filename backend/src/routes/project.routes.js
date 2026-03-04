@@ -11,7 +11,7 @@ import {
 const router = Router();
 router.use(authenticate);
 
-const managerGate = allowRoles('manager', 'ceo');
+const managerGate = allowRoles('manager', 'admin');
 
 router.get('/',                      getProjects);
 router.post('/',                     managerGate, createProject);

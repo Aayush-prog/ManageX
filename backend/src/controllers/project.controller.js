@@ -13,7 +13,7 @@ import {
 
 export const getProjects = async (req, res, next) => {
   try {
-    const projects = await getProjectsService(req.user.id, req.user.role);
+    const projects = await getProjectsService(req.user.id, req.user.permissionLevel);
     return res.json({ success: true, data: projects });
   } catch (err) { next(err); }
 };
@@ -27,7 +27,7 @@ export const createProject = async (req, res, next) => {
 
 export const getProjectById = async (req, res, next) => {
   try {
-    const project = await getProjectByIdService(req.params.id, req.user.id, req.user.role);
+    const project = await getProjectByIdService(req.params.id, req.user.id, req.user.permissionLevel);
     return res.json({ success: true, data: project });
   } catch (err) { next(err); }
 };

@@ -16,7 +16,7 @@ router.get('/my-payroll', getMyPayroll);
 router.get('/my-ssf',     getMySSF);
 
 // ── Finance / CEO only ────────────────────────────────────────────────────────
-const financeGate = allowRoles('finance', 'ceo');
+const financeGate = allowRoles('finance', 'admin');
 
 router.get('/month/:month',     financeGate, getMonthlyPayroll);
 router.post('/generate/:month', financeGate, generatePayroll);

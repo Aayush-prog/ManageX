@@ -17,45 +17,51 @@ dotenv.config({
 
 import User from "../models/User.js";
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/managex";
+const MONGO_URI = process.env.MONGO_URI;
 const DEFAULT_PASSWORD = "ManageX@2024";
 
 const SEED_USERS = [
   {
     name: "Labin Gurung",
-    email: "ceo@nepalmarathon.com",
+    email: "labingurung0@gmail.com",
     role: "ceo",
+    permissionLevel: "admin",
     monthlySalary: 0,
   },
   {
     name: "Abhishek Rai",
-    email: "manager@nepalmarathon.com",
+    email: "abhishekraii216@gmail.com",
     role: "manager",
-    monthlySalary: 55000,
+    permissionLevel: "manager",
+    monthlySalary: 35000,
   },
   {
     name: "Aayush Tamang",
-    email: "it@nepalmarathon.com",
+    email: "bombhu15@gmail.com",
     role: "it",
-    monthlySalary: 45000,
+    permissionLevel: "admin",
+    monthlySalary: 35000,
   },
   {
     name: "Jackson Aryal",
-    email: "finance@nepalmarathon.com",
+    email: "javksonaryal123@gmail.com",
     role: "finance",
-    monthlySalary: 50000,
+    permissionLevel: "finance",
+    monthlySalary: 20000,
   },
   {
     name: "Bijaya Rai",
-    email: "video@nepalmarathon.com",
+    email: "donvj1998@gmail.com",
     role: "videographer",
-    monthlySalary: 40000,
+    permissionLevel: "staff",
+    monthlySalary: 20000,
   },
   {
     name: "Pradip Tamang",
-    email: "photo@nepalmarathon.com",
+    email: "undersidepradip75@gmail.com",
     role: "photographer",
-    monthlySalary: 40000,
+    permissionLevel: "staff",
+    monthlySalary: 20000,
   },
 ];
 
@@ -74,7 +80,9 @@ const run = async () => {
       continue;
     }
     await User.create({ ...data, password: DEFAULT_PASSWORD });
-    console.log(`  [created] ${data.email}  (${data.role})`);
+    console.log(
+      `  [created] ${data.email}  (${data.role} / ${data.permissionLevel})`,
+    );
     created++;
   }
 

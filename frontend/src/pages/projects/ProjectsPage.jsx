@@ -15,7 +15,7 @@ const fmtDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
 const ProjectCard = ({ project, onClick }) => {
-  const pct = project.completionPct ?? 0;
+  const pct = project.completionPercentage ?? 0;
   const barColor = pct === 100 ? 'bg-green-500' : pct >= 50 ? 'bg-brand-500' : 'bg-amber-400';
 
   return (
@@ -61,7 +61,7 @@ const ProjectsPage = () => {
   const [loading,  setLoading]  = useState(true);
   const [showCreate, setShowCreate] = useState(false);
 
-  const canCreate = ['manager', 'ceo'].includes(user?.role);
+  const canCreate = ['manager', 'admin'].includes(user?.permissionLevel);
 
   useEffect(() => {
     api.get('/projects')

@@ -10,28 +10,22 @@ const SHARED_ITEMS = [
   { label: 'My Tasks',   to: '/tasks/me' },
 ];
 
-const NAV_ITEMS = {
-  ceo:          [{ label: 'Dashboard', to: '/ceo/dashboard' },          ...SHARED_ITEMS, { label: 'Payroll Mgmt', to: '/finance/payroll' }, { label: 'Accounting', to: '/finance/accounting' }, { label: 'Users', to: '/admin/users' }],
-  manager:      [{ label: 'Dashboard', to: '/manager/dashboard' },      ...SHARED_ITEMS],
-  it:           [{ label: 'Dashboard', to: '/it/dashboard' },           ...SHARED_ITEMS],
-  finance:      [{ label: 'Dashboard', to: '/finance/dashboard' },      ...SHARED_ITEMS, { label: 'Payroll Mgmt', to: '/finance/payroll' }, { label: 'Accounting', to: '/finance/accounting' }],
-  videographer: [{ label: 'Dashboard', to: '/videographer/dashboard' }, ...SHARED_ITEMS],
-  photographer: [{ label: 'Dashboard', to: '/photographer/dashboard' }, ...SHARED_ITEMS],
-};
+const FINANCE_ITEMS = [
+  { label: 'Payroll Mgmt', to: '/finance/payroll' },
+  { label: 'Accounting',   to: '/finance/accounting' },
+];
 
-const ROLE_LABELS = {
-  ceo:          'CEO',
-  manager:      'Manager',
-  it:           'IT',
-  finance:      'Finance',
-  videographer: 'Videographer',
-  photographer: 'Photographer',
+const NAV_ITEMS = {
+  admin:   [{ label: 'Dashboard', to: '/admin/dashboard' },   ...SHARED_ITEMS, ...FINANCE_ITEMS, { label: 'Users', to: '/admin/users' }],
+  manager: [{ label: 'Dashboard', to: '/manager/dashboard' }, ...SHARED_ITEMS],
+  finance: [{ label: 'Dashboard', to: '/finance/dashboard' }, ...SHARED_ITEMS, ...FINANCE_ITEMS],
+  staff:   [{ label: 'Dashboard', to: '/staff/dashboard' },   ...SHARED_ITEMS],
 };
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const items = NAV_ITEMS[user?.role] || [];
+  const items = NAV_ITEMS[user?.permissionLevel] || [];
   const [showChangePw, setShowChangePw] = useState(false);
 
   const handleLogout = async () => {
@@ -51,8 +45,8 @@ const Sidebar = () => {
         {/* User badge */}
         <div className="px-6 py-4 border-b border-gray-700">
           <p className="text-sm font-medium truncate">{user?.name || 'User'}</p>
-          <span className="text-xs bg-brand-700 text-brand-100 px-2 py-0.5 rounded-full mt-1 inline-block">
-            {ROLE_LABELS[user?.role] || user?.role}
+          <span className="text-xs bg-brand-700 text-brand-100 px-2 py-0.5 rounded-full mt-1 inline-block capitalize">
+            {user?.role || user?.permissionLevel}
           </span>
         </div>
 

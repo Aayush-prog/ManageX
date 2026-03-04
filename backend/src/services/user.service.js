@@ -8,9 +8,9 @@ export const listAllUsersService = async () =>
     .lean();
 
 // Create a new user (CEO only)
-export const createUserService = async ({ name, email, password, role, monthlySalary }) => {
-  if (!name || !email || !password || !role) {
-    const err = new Error('name, email, password, and role are required');
+export const createUserService = async ({ name, email, password, role, permissionLevel, monthlySalary }) => {
+  if (!name || !email || !password || !role || !permissionLevel) {
+    const err = new Error('name, email, password, role, and permissionLevel are required');
     err.statusCode = 400;
     throw err;
   }
@@ -20,7 +20,7 @@ export const createUserService = async ({ name, email, password, role, monthlySa
     err.statusCode = 409;
     throw err;
   }
-  const user = await User.create({ name, email, password, role, monthlySalary: monthlySalary ?? 0 });
+  const user = await User.create({ name, email, password, role, permissionLevel, monthlySalary: monthlySalary ?? 0 });
   return user;
 };
 

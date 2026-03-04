@@ -16,7 +16,7 @@ router.use(authenticate);
 router.get ('/me/today',  getToday);
 router.post('/clock-out', clockOut);
 router.get ('/me',        getMyAttendance);
-router.get ('/team',      allowRoles('manager', 'ceo'), getTeamAttendance);
-router.get ('/all',       allowRoles('ceo'),             getAllAttendance);
+router.get ('/team',      allowRoles('manager', 'admin'), getTeamAttendance);
+router.get ('/all',       allowRoles('admin'),             getAllAttendance);
 
 export default router;

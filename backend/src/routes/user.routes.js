@@ -17,15 +17,15 @@ router.use(authenticate);
 // Self-service (any auth)
 router.patch('/change-password',     changePassword);
 
-// Finance + CEO
-router.get ('/',                     allowRoles('finance', 'ceo', 'manager'), listUsers);
-router.patch('/update-salary/:id',   allowRoles('finance', 'ceo'),           updateSalary);
-router.patch('/update-ssf/:id',      allowRoles('finance', 'ceo'),           updateSSF);
+// Finance + Admin
+router.get ('/',                     allowRoles('finance', 'admin', 'manager'), listUsers);
+router.patch('/update-salary/:id',   allowRoles('finance', 'admin'),            updateSalary);
+router.patch('/update-ssf/:id',      allowRoles('finance', 'admin'),            updateSSF);
 
-// CEO only
-router.get  ('/all',                 allowRoles('ceo'), listAllUsers);
-router.post ('/',                    allowRoles('ceo'), createUser);
-router.patch('/:id/set-password',    allowRoles('ceo'), adminSetPassword);
-router.patch('/:id/toggle-active',   allowRoles('ceo'), toggleActive);
+// Admin only
+router.get  ('/all',                 allowRoles('admin'), listAllUsers);
+router.post ('/',                    allowRoles('admin'), createUser);
+router.patch('/:id/set-password',    allowRoles('admin'), adminSetPassword);
+router.patch('/:id/toggle-active',   allowRoles('admin'), toggleActive);
 
 export default router;

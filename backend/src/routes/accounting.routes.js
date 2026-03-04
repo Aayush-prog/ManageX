@@ -3,7 +3,7 @@ import { authenticate, allowRoles } from '../middleware/auth.js';
 import * as ctrl from '../controllers/accounting.controller.js';
 
 const router = Router();
-const fin = [authenticate, allowRoles('finance', 'ceo')];
+const fin = [authenticate, allowRoles('finance', 'admin')];
 
 // Expenses
 router.get   ('/expenses',           ...fin, ctrl.getExpenses);

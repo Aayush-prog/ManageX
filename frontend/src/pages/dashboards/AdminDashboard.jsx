@@ -20,7 +20,7 @@ const STATUS_BADGE = {
   Completed: 'bg-blue-50 text-blue-700',
 };
 
-const CeoDashboard = () => {
+const AdminDashboard = () => {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [summary,  setSummary]  = useState(null);
@@ -49,7 +49,7 @@ const CeoDashboard = () => {
   const payroll = summary?.payroll ?? {};
 
   return (
-    <DashboardLayout title="CEO Overview">
+    <DashboardLayout title="Admin Overview">
       <div className="space-y-6">
         {/* Project KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -169,4 +169,4 @@ const CeoDashboard = () => {
   );
 };
 
-export default CeoDashboard;
+export default AdminDashboard;

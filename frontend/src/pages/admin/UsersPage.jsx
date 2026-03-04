@@ -2,16 +2,15 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
 
-const ROLES = ['ceo', 'manager', 'it', 'finance', 'videographer', 'photographer'];
+const PERMISSION_LEVELS = ['admin', 'manager', 'finance', 'staff'];
 
-const ROLE_BADGE = {
-  ceo:          'bg-brand-50 text-brand-700',
-  manager:      'bg-blue-50 text-blue-700',
-  it:           'bg-purple-50 text-purple-700',
-  finance:      'bg-green-50 text-green-700',
-  videographer: 'bg-amber-50 text-amber-700',
-  photographer: 'bg-orange-50 text-orange-700',
+const PERMISSION_BADGE = {
+  admin:   'bg-brand-50 text-brand-700',
+  manager: 'bg-blue-50 text-blue-700',
+  finance: 'bg-green-50 text-green-700',
+  staff:   'bg-gray-100 text-gray-600',
 };
+
 
 const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
 const labelCls = 'block text-sm font-medium text-gray-700 mb-1';
@@ -19,14 +18,14 @@ const labelCls = 'block text-sm font-medium text-gray-700 mb-1';
 // ── Create User Modal ─────────────────────────────────────────────────────────
 
 const CreateUserModal = ({ onClose, onCreated }) => {
-  const [form,   setForm]   = useState({ name: '', email: '', password: '', role: 'it', monthlySalary: '' });
+  const [form,   setForm]   = useState({ name: '', email: '', password: '', role: '', permissionLevel: 'staff', monthlySalary: '' });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.password) { setError('Name, email, and password are required'); return; }
+    if (!form.name || !form.email || !form.password || !form.role) { setError('Name, email, role (job title), and password are required'); return; }
     setSaving(true); setError('');
     try {
       const payload = { ...form, monthlySalary: Number(form.monthlySalary) || 0 };
@@ -52,11 +51,15 @@ const CreateUserModal = ({ onClose, onCreated }) => {
             <label className={labelCls}>Email *</label>
             <input type="email" className={inputCls} value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="email@nepalmarathon.com" />
           </div>
+          <div>
+            <label className={labelCls}>Job Title * (e.g. Videographer, IT)</label>
+            <input className={inputCls} value={form.role} onChange={(e) => set('role', e.target.value)} placeholder="Job title" />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>Role *</label>
-              <select className={inputCls} value={form.role} onChange={(e) => set('role', e.target.value)}>
-                {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+              <label className={labelCls}>Permission Level *</label>
+              <select className={inputCls} value={form.permissionLevel} onChange={(e) => set('permissionLevel', e.target.value)}>
+                {PERMISSION_LEVELS.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
             <div>
@@ -268,7 +271,8 @@ const UsersPage = () => {
                 <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
                   <th className="text-left px-4 py-3">Name</th>
                   <th className="text-left px-4 py-3">Email</th>
-                  <th className="text-left px-4 py-3">Role</th>
+                  <th className="text-left px-4 py-3">Job Title</th>
+                  <th className="text-left px-4 py-3">Access</th>
                   <th className="text-right px-4 py-3">Salary</th>
                   <th className="text-left px-4 py-3">Status</th>
                   <th className="text-left px-4 py-3">Actions</th>
@@ -286,9 +290,10 @@ const UsersPage = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-500">{u.email}</td>
+                    <td className="px-4 py-3 text-gray-600 capitalize">{u.role}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${ROLE_BADGE[u.role] ?? 'bg-gray-100 text-gray-600'}`}>
-                        {u.role}
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${PERMISSION_BADGE[u.permissionLevel] ?? 'bg-gray-100 text-gray-600'}`}>
+                        {u.permissionLevel}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right text-gray-700">

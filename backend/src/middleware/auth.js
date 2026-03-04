@@ -23,7 +23,7 @@ export const authenticate = (req, res, next) => {
 // ── allowRoles ────────────────────────────────────────────────────────────────
 export const allowRoles = (...roles) => {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user || !roles.includes(req.user.permissionLevel)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
     next();

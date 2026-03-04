@@ -11,6 +11,7 @@ const signRefreshToken = (payload) =>
 const buildTokenPayload = (user) => ({
   id: user._id,
   role: user.role,
+  permissionLevel: user.permissionLevel,
   name: user.name,
   email: user.email,
 });

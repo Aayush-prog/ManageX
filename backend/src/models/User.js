@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { createHash } from 'crypto';
 
-const ROLES = ['ceo', 'manager', 'it', 'finance', 'videographer', 'photographer'];
+export const PERMISSION_LEVELS = ['admin', 'manager', 'finance', 'staff'];
 
 const userSchema = new mongoose.Schema(
   {
@@ -25,10 +25,18 @@ const userSchema = new mongoose.Schema(
       minlength: [8, 'Password must be at least 8 characters'],
       select: false,
     },
+    // Free-text job title — displayed in UI, not used for access control
     role: {
       type: String,
-      enum: { values: ROLES, message: 'Invalid role: {VALUE}' },
       required: [true, 'Role is required'],
+      trim: true,
+    },
+    // Controls access and which dashboard is shown
+    permissionLevel: {
+      type: String,
+      enum: { values: PERMISSION_LEVELS, message: 'Invalid permission level: {VALUE}' },
+      required: [true, 'Permission level is required'],
+      default: 'staff',
     },
     monthlySalary: {
       type: Number,
@@ -37,12 +45,12 @@ const userSchema = new mongoose.Schema(
     },
     ssfEmployeePercent: {
       type: Number,
-      default: 11, // Nepal standard: employee contributes 11%
+      default: 11,
       min: [0, 'Cannot be negative'],
     },
     ssfEmployerPercent: {
       type: Number,
-      default: 20, // Nepal standard: employer contributes 20%
+      default: 20,
       min: [0, 'Cannot be negative'],
     },
     requiredHoursPerDay: {
@@ -60,7 +68,6 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    // SHA-256 hash of current refresh token (for server-side invalidation)
     refreshTokenHash: {
       type: String,
       select: false,
@@ -70,33 +77,28 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Hash password before save
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
-// Instance method: compare plain password
 userSchema.methods.comparePassword = async function (plain) {
   return bcrypt.compare(plain, this.password);
 };
 
-// Instance method: store hashed refresh token
 userSchema.methods.setRefreshToken = function (token) {
   this.refreshTokenHash = token
     ? createHash('sha256').update(token).digest('hex')
     : null;
 };
 
-// Instance method: validate incoming refresh token against hash
 userSchema.methods.validateRefreshToken = function (token) {
   if (!this.refreshTokenHash || !token) return false;
   const hash = createHash('sha256').update(token).digest('hex');
   return hash === this.refreshTokenHash;
 };
 
-// Remove sensitive fields from JSON output
 userSchema.set('toJSON', {
   transform: (_, ret) => {
     delete ret.password;
@@ -106,5 +108,4 @@ userSchema.set('toJSON', {
   },
 });
 
-export const VALID_ROLES = ROLES;
 export default mongoose.model('User', userSchema);

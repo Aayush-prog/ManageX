@@ -11,25 +11,21 @@ import UsersPage       from '../pages/admin/UsersPage.jsx';
 import ProjectsPage    from '../pages/projects/ProjectsPage.jsx';
 import KanbanPage      from '../pages/projects/KanbanPage.jsx';
 import MyTasksPage     from '../pages/projects/MyTasksPage.jsx';
-import CeoDashboard from '../pages/dashboards/CeoDashboard.jsx';
+import AdminDashboard  from '../pages/dashboards/AdminDashboard.jsx';
 import ManagerDashboard from '../pages/dashboards/ManagerDashboard.jsx';
-import ITDashboard from '../pages/dashboards/ITDashboard.jsx';
 import FinanceDashboard from '../pages/dashboards/FinanceDashboard.jsx';
-import VideographerDashboard from '../pages/dashboards/VideographerDashboard.jsx';
-import PhotographerDashboard from '../pages/dashboards/PhotographerDashboard.jsx';
+import StaffDashboard  from '../pages/dashboards/StaffDashboard.jsx';
 
-const ROLE_DEFAULT_ROUTES = {
-  ceo: '/ceo/dashboard',
+const PERMISSION_DEFAULT_ROUTES = {
+  admin:   '/admin/dashboard',
   manager: '/manager/dashboard',
-  it: '/it/dashboard',
   finance: '/finance/dashboard',
-  videographer: '/videographer/dashboard',
-  photographer: '/photographer/dashboard',
+  staff:   '/staff/dashboard',
 };
 
 const RoleRedirect = () => {
   const { user } = useAuth();
-  const target = ROLE_DEFAULT_ROUTES[user?.role] || '/login';
+  const target = PERMISSION_DEFAULT_ROUTES[user?.permissionLevel] || '/login';
   return <Navigate to={target} replace />;
 };
 
@@ -43,7 +39,7 @@ const AppRouter = () => (
       {/* Role root redirect */}
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<RoleRedirect />} />
-        {/* Shared — every authenticated role */}
+        {/* Shared — every authenticated user */}
         <Route path="/attendance"      element={<AttendancePage />} />
         <Route path="/payroll/me"      element={<MyPayrollPage />} />
         <Route path="/projects"        element={<ProjectsPage />} />
@@ -51,16 +47,16 @@ const AppRouter = () => (
         <Route path="/tasks/me"        element={<MyTasksPage />} />
       </Route>
 
-      {/* Finance & CEO — payroll + accounting */}
-      <Route element={<ProtectedRoute allowedRoles={['finance', 'ceo']} />}>
+      {/* Finance & Admin — payroll + accounting */}
+      <Route element={<ProtectedRoute allowedRoles={['finance', 'admin']} />}>
         <Route path="/finance/payroll"     element={<PayrollPage />} />
         <Route path="/finance/accounting"  element={<AccountingPage />} />
       </Route>
 
-      {/* CEO */}
-      <Route element={<ProtectedRoute allowedRoles={['ceo']} />}>
-        <Route path="/ceo/dashboard" element={<CeoDashboard />} />
-        <Route path="/admin/users"   element={<UsersPage />} />
+      {/* Admin */}
+      <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/users"     element={<UsersPage />} />
       </Route>
 
       {/* Manager */}
@@ -68,24 +64,14 @@ const AppRouter = () => (
         <Route path="/manager/dashboard" element={<ManagerDashboard />} />
       </Route>
 
-      {/* IT */}
-      <Route element={<ProtectedRoute allowedRoles={['it']} />}>
-        <Route path="/it/dashboard" element={<ITDashboard />} />
-      </Route>
-
       {/* Finance */}
       <Route element={<ProtectedRoute allowedRoles={['finance']} />}>
         <Route path="/finance/dashboard" element={<FinanceDashboard />} />
       </Route>
 
-      {/* Videographer */}
-      <Route element={<ProtectedRoute allowedRoles={['videographer']} />}>
-        <Route path="/videographer/dashboard" element={<VideographerDashboard />} />
-      </Route>
-
-      {/* Photographer */}
-      <Route element={<ProtectedRoute allowedRoles={['photographer']} />}>
-        <Route path="/photographer/dashboard" element={<PhotographerDashboard />} />
+      {/* Staff */}
+      <Route element={<ProtectedRoute allowedRoles={['staff']} />}>
+        <Route path="/staff/dashboard" element={<StaffDashboard />} />
       </Route>
 
       {/* Fallback */}
