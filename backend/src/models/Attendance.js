@@ -31,6 +31,11 @@ const attendanceSchema = new mongoose.Schema(
       enum: ['Office', 'Remote'],
       required: true,
     },
+    clockOutLocationType: {
+      type: String,
+      enum: ['Office', 'Remote'],
+      default: null,
+    },
     isLate: {
       type: Boolean,
       default: false,

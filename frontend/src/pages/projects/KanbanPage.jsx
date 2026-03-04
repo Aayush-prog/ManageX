@@ -5,6 +5,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import TaskCard from '../../components/projects/TaskCard.jsx';
 import CreateTaskModal from '../../components/projects/CreateTaskModal.jsx';
 import TaskDetailModal from '../../components/projects/TaskDetailModal.jsx';
+import EditProjectModal from '../../components/projects/EditProjectModal.jsx';
 import api from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
 
@@ -26,28 +27,39 @@ const COLUMN_HEADER = {
   Done:       'bg-green-50 border-green-100',
 };
 
+const STATUS_BADGE = {
+  Planning:  'bg-gray-100 text-gray-600',
+  Active:    'bg-green-50 text-green-700',
+  Completed: 'bg-blue-50 text-blue-700',
+};
+
 const KanbanPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [project,     setProject]     = useState(null);
+  const [project,       setProject]       = useState(null);
   const [tasksByStatus, setTasksByStatus] = useState({});
-  const [loading,     setLoading]     = useState(true);
-  const [createStatus, setCreateStatus] = useState(null); // which column's + was clicked
-  const [detailTask,  setDetailTask]  = useState(null);
+  const [loading,       setLoading]       = useState(true);
+  const [createStatus,  setCreateStatus]  = useState(null);
+  const [detailTask,    setDetailTask]    = useState(null);
+  const [showEditProject, setShowEditProject] = useState(false);
 
   const canManage = ['manager', 'admin'].includes(user?.permissionLevel);
 
-  useEffect(() => {
+  const load = () => {
     api.get(`/projects/${id}`)
       .then(({ data }) => {
-        setProject(data.data.project);
-        setTasksByStatus(data.data.tasksByStatus ?? {});
+        // API returns flat object: { ...projectFields, tasksByStatus }
+        const { tasksByStatus: tbs, ...proj } = data.data;
+        setProject(proj);
+        setTasksByStatus(tbs ?? {});
       })
       .catch(() => navigate('/projects'))
       .finally(() => setLoading(false));
-  }, [id]);
+  };
+
+  useEffect(() => { load(); }, [id]);
 
   const getTasks = (status) => tasksByStatus[status] ?? [];
 
@@ -59,12 +71,14 @@ const KanbanPage = () => {
   };
 
   const handleTaskUpdated = (updated) => {
-    // update in the correct column
     setTasksByStatus((prev) => {
       const next = { ...prev };
+      // Remove from all columns first (handles status change)
       COLUMNS.forEach((col) => {
-        next[col] = (prev[col] ?? []).map((t) => t._id === updated._id ? updated : t);
+        next[col] = (prev[col] ?? []).filter((t) => t._id !== updated._id);
       });
+      // Place in the correct column
+      next[updated.status] = [updated, ...(next[updated.status] ?? [])];
       return next;
     });
     setDetailTask(updated);
@@ -84,14 +98,12 @@ const KanbanPage = () => {
     const updatedTask = { ...moved, status: dstCol };
     dstList.splice(destination.index, 0, updatedTask);
 
-    // Optimistic update
     setTasksByStatus((prev) => ({
       ...prev,
       [srcCol]: srcList,
       [dstCol]: dstList,
     }));
 
-    // Persist
     try {
       await api.patch(`/tasks/${draggableId}`, { status: dstCol });
     } catch {
@@ -120,27 +132,45 @@ const KanbanPage = () => {
   const totalTasks = COLUMNS.reduce((sum, col) => sum + getTasks(col).length, 0);
   const doneTasks  = getTasks('Done').length;
   const pct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const members = project?.members ?? [];
 
   return (
     <DashboardLayout title={project?.name ?? 'Kanban'}>
       <div className="space-y-4">
         {/* Project header */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/projects')} className="text-sm text-gray-400 hover:text-gray-600">
+          <div className="flex items-center gap-3 min-w-0">
+            <button onClick={() => navigate('/projects')} className="text-sm text-gray-400 hover:text-gray-600 flex-shrink-0">
               ← Projects
             </button>
-            <span className="text-gray-200">|</span>
-            <div>
-              <span className="text-sm text-gray-500">{doneTasks}/{totalTasks} tasks done</span>
-              <span className="ml-2 text-sm font-medium text-brand-600">{pct}%</span>
+            <span className="text-gray-300">|</span>
+            {/* Project name + status badge */}
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="text-base font-semibold text-gray-800 truncate">{project?.name}</h2>
+              {project?.status && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${STATUS_BADGE[project.status]}`}>
+                  {project.status}
+                </span>
+              )}
             </div>
           </div>
-          {canManage && (
-            <button onClick={() => setCreateStatus('Backlog')} className="btn-primary text-sm">
-              + Add Task
-            </button>
-          )}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-sm text-gray-500">{doneTasks}/{totalTasks} done</span>
+            <span className="text-sm font-medium text-brand-600">{pct}%</span>
+            {canManage && (
+              <>
+                <button
+                  onClick={() => setShowEditProject(true)}
+                  className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                >
+                  Edit Project
+                </button>
+                <button onClick={() => setCreateStatus('Backlog')} className="btn-primary text-sm">
+                  + Add Task
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Board */}
@@ -150,7 +180,6 @@ const KanbanPage = () => {
               const tasks = getTasks(col);
               return (
                 <div key={col} className="flex-shrink-0 w-60">
-                  {/* Column header */}
                   <div className={`rounded-lg border px-3 py-2 mb-2 flex items-center justify-between ${COLUMN_HEADER[col]}`}>
                     <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                       {COLUMN_LABEL[col]}
@@ -169,7 +198,6 @@ const KanbanPage = () => {
                     </div>
                   </div>
 
-                  {/* Droppable column */}
                   <Droppable droppableId={col}>
                     {(provided, snapshot) => (
                       <div
@@ -201,7 +229,7 @@ const KanbanPage = () => {
       {createStatus && (
         <CreateTaskModal
           projectId={id}
-          members={project?.members ?? []}
+          members={members}
           defaultStatus={createStatus}
           onClose={() => setCreateStatus(null)}
           onCreated={handleTaskCreated}
@@ -211,8 +239,18 @@ const KanbanPage = () => {
       {detailTask && (
         <TaskDetailModal
           task={detailTask}
+          members={members}
+          canEdit={canManage}
           onClose={() => setDetailTask(null)}
           onUpdated={handleTaskUpdated}
+        />
+      )}
+
+      {showEditProject && (
+        <EditProjectModal
+          project={project}
+          onClose={() => setShowEditProject(false)}
+          onUpdated={(updated) => setProject((prev) => ({ ...prev, ...updated }))}
         />
       )}
     </DashboardLayout>

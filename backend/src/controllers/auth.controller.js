@@ -23,7 +23,7 @@ export const login = async (req, res, next) => {
     const { accessToken, refreshToken, user } = await loginService(email, password);
 
     // Auto clock-in: pass real client IP (trust proxy is set in app.js)
-    const attendance = await clockInService(user._id, req.ip);
+    const { record: attendance, skipped } = await clockInService(user._id, req.ip);
 
     res.cookie(REFRESH_COOKIE, refreshToken, cookieOptions);
 
@@ -44,6 +44,7 @@ export const login = async (req, res, next) => {
             isLate:       attendance.isLate,
           }
         : null,
+      checkInSkipped: skipped, // true when login is outside working hours
     });
   } catch (err) {
     next(err);
@@ -74,7 +75,7 @@ export const logout = async (req, res, next) => {
     // Best effort — auto clock-out + clear tokens
     if (req.user?.id) {
       await Promise.all([
-        clockOutService(req.user.id),
+        clockOutService(req.user.id, req.ip),
         logoutService(req.user.id),
       ]);
     }

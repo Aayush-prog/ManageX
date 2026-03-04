@@ -30,10 +30,11 @@ export const startAutoClockOutJob = () => {
       const updates = openSessions.map((record) => {
         // Guard: if user clocked in after the scheduled clockout, don't go negative
         const effectiveClockOut = clockOut > record.clockIn ? clockOut : new Date();
-        record.clockOut   = effectiveClockOut;
-        record.totalHours = parseFloat(
+        record.clockOut              = effectiveClockOut;
+        record.totalHours            = parseFloat(
           ((effectiveClockOut - record.clockIn) / 3_600_000).toFixed(2)
         );
+        record.clockOutLocationType  = record.locationType; // auto clock-out inherits check-in location
         return record.save();
       });
 

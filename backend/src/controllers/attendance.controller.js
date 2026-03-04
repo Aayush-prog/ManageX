@@ -14,7 +14,7 @@ const currentYearMonth = () => {
 // POST /api/attendance/clock-out
 export const clockOut = async (req, res, next) => {
   try {
-    const record = await clockOutService(req.user.id);
+    const record = await clockOutService(req.user.id, req.ip);
     if (!record) {
       return res.status(400).json({ success: false, message: 'No open session to clock out' });
     }

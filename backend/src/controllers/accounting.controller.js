@@ -2,6 +2,7 @@ import {
   addExpenseService, getExpensesService, updateExpenseStatusService,
   addBillService, getBillsService, markBillPaidService,
   setBudgetService, getBudgetsService,
+  addDepositService, getDepositsService, getProjectFinancialSummaryService,
   getSummaryService,
 } from '../services/accounting.service.js';
 
@@ -25,3 +26,7 @@ export const getSummary    = async (req, res) => {
     ok(res, await getSummaryService(month));
   } catch (e) { err(res, e); }
 };
+
+export const addDeposit            = async (req, res) => { try { ok(res, await addDepositService(req.body, req.user.id), 201);                                  } catch (e) { err(res, e); } };
+export const getDeposits           = async (req, res) => { try { ok(res, await getDepositsService(req.query));                                                   } catch (e) { err(res, e); } };
+export const getProjectFinancials  = async (req, res) => { try { ok(res, await getProjectFinancialSummaryService(req.params.projectId));                         } catch (e) { err(res, e); } };

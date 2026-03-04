@@ -1,7 +1,8 @@
-import Expense       from '../models/Expense.js';
-import Bill          from '../models/Bill.js';
-import ProjectBudget from '../models/ProjectBudget.js';
-import Payroll       from '../models/Payroll.js';
+import Expense        from '../models/Expense.js';
+import Bill           from '../models/Bill.js';
+import ProjectBudget  from '../models/ProjectBudget.js';
+import ProjectDeposit from '../models/ProjectDeposit.js';
+import Payroll        from '../models/Payroll.js';
 
 // ── Expenses ──────────────────────────────────────────────────────────────────
 
@@ -57,12 +58,16 @@ export const updateExpenseStatusService = async (expenseId, userId, action) => {
 // ── Bills ─────────────────────────────────────────────────────────────────────
 
 export const addBillService = async (data, userId) => {
-  const bill = await Bill.create({ ...data, createdBy: userId });
-  return bill.populate('createdBy', 'name');
+  const payload = { ...data, createdBy: userId };
+  if (!payload.project) delete payload.project;
+  const bill = await Bill.create(payload);
+  return bill.populate([{ path: 'createdBy', select: 'name' }, { path: 'project', select: 'name' }]);
 };
 
 export const getBillsService = async () =>
-  Bill.find().sort({ dueDate: 1 }).populate('createdBy', 'name');
+  Bill.find().sort({ dueDate: 1 })
+    .populate('createdBy', 'name')
+    .populate('project',   'name');
 
 export const markBillPaidService = async (billId) => {
   const bill = await Bill.findById(billId);
@@ -87,6 +92,48 @@ export const getBudgetsService = async () =>
   ProjectBudget.find()
     .populate('project', 'name status')
     .sort({ createdAt: -1 });
+
+// ── Project Deposits ──────────────────────────────────────────────────────────
+
+export const addDepositService = async (data, userId) => {
+  const deposit = await ProjectDeposit.create({ ...data, createdBy: userId });
+  return deposit.populate([
+    { path: 'createdBy', select: 'name' },
+    { path: 'project',   select: 'name' },
+  ]);
+};
+
+export const getDepositsService = async ({ month, projectId } = {}) => {
+  const filter = {};
+  if (projectId) filter.project = projectId;
+  if (month) {
+    const [year, mon] = month.split('-').map(Number);
+    filter.date = { $gte: new Date(year, mon - 1, 1), $lt: new Date(year, mon, 1) };
+  }
+  return ProjectDeposit.find(filter)
+    .sort({ date: -1 })
+    .populate('createdBy', 'name')
+    .populate('project',   'name');
+};
+
+export const getProjectFinancialSummaryService = async (projectId) => {
+  const [deposits, expenses] = await Promise.all([
+    ProjectDeposit.find({ project: projectId }).lean(),
+    Expense.find({ project: projectId, status: 'Approved' }).lean(),
+  ]);
+
+  const totalDeposits = deposits.reduce((s, d) => s + d.amount, 0);
+  const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+
+  return {
+    projectId,
+    totalDeposits,
+    totalExpenses,
+    balance: totalDeposits - totalExpenses,
+    deposits,
+    expenses,
+  };
+};
 
 // ── Summary ───────────────────────────────────────────────────────────────────
 

@@ -6,6 +6,7 @@ import { ChangePasswordModal } from '../../pages/admin/UsersPage.jsx';
 const SHARED_ITEMS = [
   { label: 'Attendance', to: '/attendance' },
   { label: 'My Payroll', to: '/payroll/me' },
+  { label: 'My Leave',   to: '/leave' },
   { label: 'Projects',   to: '/projects' },
   { label: 'My Tasks',   to: '/tasks/me' },
 ];
@@ -15,9 +16,13 @@ const FINANCE_ITEMS = [
   { label: 'Accounting',   to: '/finance/accounting' },
 ];
 
+const MANAGER_EXTRA = [
+  { label: 'Leave Requests', to: '/leave/manage' },
+];
+
 const NAV_ITEMS = {
-  admin:   [{ label: 'Dashboard', to: '/admin/dashboard' },   ...SHARED_ITEMS, ...FINANCE_ITEMS, { label: 'Users', to: '/admin/users' }],
-  manager: [{ label: 'Dashboard', to: '/manager/dashboard' }, ...SHARED_ITEMS],
+  admin:   [{ label: 'Dashboard', to: '/admin/dashboard' },   ...SHARED_ITEMS, ...FINANCE_ITEMS, ...MANAGER_EXTRA, { label: 'Users', to: '/admin/users' }],
+  manager: [{ label: 'Dashboard', to: '/manager/dashboard' }, ...SHARED_ITEMS, ...MANAGER_EXTRA],
   finance: [{ label: 'Dashboard', to: '/finance/dashboard' }, ...SHARED_ITEMS, ...FINANCE_ITEMS],
   staff:   [{ label: 'Dashboard', to: '/staff/dashboard' },   ...SHARED_ITEMS],
 };

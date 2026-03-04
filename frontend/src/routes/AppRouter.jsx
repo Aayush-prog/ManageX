@@ -3,18 +3,20 @@ import { useAuth } from '../store/AuthContext.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 
 import Login from '../pages/auth/Login.jsx';
-import AttendancePage  from '../pages/attendance/AttendancePage.jsx';
-import MyPayrollPage   from '../pages/payroll/MyPayrollPage.jsx';
-import PayrollPage     from '../pages/finance/PayrollPage.jsx';
-import AccountingPage  from '../pages/finance/AccountingPage.jsx';
-import UsersPage       from '../pages/admin/UsersPage.jsx';
-import ProjectsPage    from '../pages/projects/ProjectsPage.jsx';
-import KanbanPage      from '../pages/projects/KanbanPage.jsx';
-import MyTasksPage     from '../pages/projects/MyTasksPage.jsx';
-import AdminDashboard  from '../pages/dashboards/AdminDashboard.jsx';
-import ManagerDashboard from '../pages/dashboards/ManagerDashboard.jsx';
-import FinanceDashboard from '../pages/dashboards/FinanceDashboard.jsx';
-import StaffDashboard  from '../pages/dashboards/StaffDashboard.jsx';
+import AttendancePage       from '../pages/attendance/AttendancePage.jsx';
+import MyPayrollPage        from '../pages/payroll/MyPayrollPage.jsx';
+import PayrollPage          from '../pages/finance/PayrollPage.jsx';
+import AccountingPage       from '../pages/finance/AccountingPage.jsx';
+import UsersPage            from '../pages/admin/UsersPage.jsx';
+import ProjectsPage         from '../pages/projects/ProjectsPage.jsx';
+import KanbanPage           from '../pages/projects/KanbanPage.jsx';
+import MyTasksPage          from '../pages/projects/MyTasksPage.jsx';
+import LeavePage            from '../pages/leave/LeavePage.jsx';
+import LeaveManagementPage  from '../pages/leave/LeaveManagementPage.jsx';
+import AdminDashboard       from '../pages/dashboards/AdminDashboard.jsx';
+import ManagerDashboard     from '../pages/dashboards/ManagerDashboard.jsx';
+import FinanceDashboard     from '../pages/dashboards/FinanceDashboard.jsx';
+import StaffDashboard       from '../pages/dashboards/StaffDashboard.jsx';
 
 const PERMISSION_DEFAULT_ROUTES = {
   admin:   '/admin/dashboard',
@@ -45,6 +47,12 @@ const AppRouter = () => (
         <Route path="/projects"        element={<ProjectsPage />} />
         <Route path="/projects/:id"    element={<KanbanPage />} />
         <Route path="/tasks/me"        element={<MyTasksPage />} />
+        <Route path="/leave"           element={<LeavePage />} />
+      </Route>
+
+      {/* Leave management — manager and admin */}
+      <Route element={<ProtectedRoute allowedRoles={['manager', 'admin']} />}>
+        <Route path="/leave/manage" element={<LeaveManagementPage />} />
       </Route>
 
       {/* Finance & Admin — payroll + accounting */}

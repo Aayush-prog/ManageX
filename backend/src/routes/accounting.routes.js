@@ -22,4 +22,9 @@ router.post  ('/budgets',            ...fin, ctrl.setBudget);
 // Summary
 router.get   ('/summary',            ...fin, ctrl.getSummary);
 
+// Project Deposits
+router.get   ('/deposits',                       ...fin, ctrl.getDeposits);
+router.post  ('/deposits',                       ...fin, ctrl.addDeposit);
+router.get   ('/projects/:projectId/financials', ...fin, ctrl.getProjectFinancials);
+
 export default router;

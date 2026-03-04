@@ -5,7 +5,8 @@ import payrollRoutes     from './payroll.routes.js';
 import userRoutes        from './user.routes.js';
 import projectRoutes     from './project.routes.js';
 import taskRoutes        from './task.routes.js';
-import accountingRoutes      from './accounting.routes.js';
+import accountingRoutes  from './accounting.routes.js';
+import leaveRoutes       from './leave.routes.js';
 import notificationRoutes   from './notification.routes.js';
 
 const router = Router();
@@ -20,7 +21,8 @@ router.use('/payroll',     payrollRoutes);
 router.use('/users',       userRoutes);
 router.use('/projects',    projectRoutes);
 router.use('/tasks',       taskRoutes);
-router.use('/accounting',     accountingRoutes);
+router.use('/accounting',  accountingRoutes);
+router.use('/leaves',      leaveRoutes);
 router.use('/notifications',  notificationRoutes);
 
 export default router;

@@ -34,6 +34,16 @@ export const isLateClockIn = (clockIn = new Date()) => {
 };
 
 /**
+ * Returns true if the given time is outside the allowed check-in window.
+ * Window: CHECKIN_START_HOUR (inclusive) to CHECKIN_END_HOUR (inclusive).
+ * e.g. window 6–21 → 5:59 and 21:01 return true (outside).
+ */
+export const isOutsideCheckInWindow = (date = new Date()) => {
+  const { hour } = getLocalTimeParts(date);
+  return hour < env.CHECKIN_START_HOUR || hour >= env.CHECKIN_END_HOUR;
+};
+
+/**
  * Returns the UTC offset string for the configured timezone, e.g. "+05:45".
  * Uses Intl 'longOffset' timeZoneName which gives "GMT+05:45" style strings.
  */
