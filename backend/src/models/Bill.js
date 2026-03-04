@@ -1,0 +1,16 @@
+import mongoose from 'mongoose';
+
+const billSchema = new mongoose.Schema({
+  vendorName:  { type: String, required: true, trim: true },
+  description: { type: String, trim: true },
+  amount:      { type: Number, required: true, min: 0 },
+  dueDate:     { type: Date },
+  status:      { type: String, enum: ['Unpaid', 'Paid'], default: 'Unpaid' },
+  paidAt:      { type: Date },
+  createdBy:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+}, { timestamps: true });
+
+billSchema.index({ status: 1 });
+billSchema.index({ dueDate: 1 });
+
+export default mongoose.model('Bill', billSchema);

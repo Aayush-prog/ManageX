@@ -1,0 +1,22 @@
+import { Router } from 'express';
+import { authenticate, allowRoles } from '../middleware/auth.js';
+import {
+  getProjects,
+  createProject,
+  getProjectById,
+  updateProject,
+  createTask,
+} from '../controllers/project.controller.js';
+
+const router = Router();
+router.use(authenticate);
+
+const managerGate = allowRoles('manager', 'ceo');
+
+router.get('/',                      getProjects);
+router.post('/',                     managerGate, createProject);
+router.get('/:id',                   getProjectById);
+router.patch('/:id',                 managerGate, updateProject);
+router.post('/:projectId/tasks',     managerGate, createTask);
+
+export default router;
