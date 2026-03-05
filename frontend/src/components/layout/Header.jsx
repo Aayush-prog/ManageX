@@ -82,14 +82,18 @@ const Header = ({ title }) => {
                     >
                       <div className="flex items-start gap-3">
                         <span className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${
-                          n.type === 'overdue_task' ? 'bg-amber-400' : 'bg-red-500'
+                          n.type === 'overdue_task' ? 'bg-amber-400'
+                          : n.type === 'pending_leave' ? 'bg-blue-400'
+                          : 'bg-red-500'
                         }`} />
                         <div className="min-w-0">
                           <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                             {n.title}
                           </p>
                           <p className="text-sm text-gray-700 mt-0.5 leading-snug">{n.message}</p>
-                          <p className="text-xs text-gray-400 mt-1">Due {fmtBSShort(n.date)}</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {n.type === 'pending_leave' ? `Starts ${fmtBSShort(n.date)}` : `Due ${fmtBSShort(n.date)}`}
+                          </p>
                         </div>
                       </div>
                     </button>

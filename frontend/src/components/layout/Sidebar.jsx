@@ -18,6 +18,7 @@ const FINANCE_ITEMS = [
 
 const MANAGER_EXTRA = [
   { label: 'Leave Requests', to: '/leave/manage' },
+  { label: 'Team',           to: '/manager/team' },
 ];
 
 const NAV_ITEMS = {

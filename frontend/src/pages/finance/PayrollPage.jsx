@@ -1,14 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
-import { fmtBSDate, fmtBSMonthYear, curADMonth, adMonthToBSLabel, adYearToBSYear } from '../../utils/nepaliDate.js';
+import { fmtBSDate, fmtBSMonthYear, BS_MONTHS, currentBSMonthYear, bsToADYearMonth, currentBSYear } from '../../utils/nepaliDate.js';
 
 const fmtNPR   = (n = 0) => `Rs. ${Number(n).toLocaleString('en-IN')}`;
 const fmtDate  = fmtBSDate;
 const fmtMonth = fmtBSMonthYear;
-const currentMonthKey = curADMonth;
-
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const StatusBadge = ({ status }) => (
   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -92,23 +89,25 @@ const EmployeeRow = ({ user: u, onSaved }) => {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const PayrollPage = () => {
-  const now = new Date();
+  const initBS = currentBSMonthYear();
   const [tab, setTab] = useState('payroll'); // 'payroll' | 'employees'
 
-  // Payroll tab state
-  const [selYear,  setSelYear]  = useState(now.getFullYear());
-  const [selMonth, setSelMonth] = useState(now.getMonth() + 1);
-  const [records,  setRecords]  = useState([]);
+  // Payroll tab state — BS-based
+  const [bsYear,     setBsYear]     = useState(initBS.year);
+  const [bsMonth,    setBsMonth]    = useState(initBS.month); // 0-indexed
+  const [records,    setRecords]    = useState([]);
   const [payLoading, setPayLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [genMsg,   setGenMsg]   = useState(null);
+  const [genMsg,     setGenMsg]     = useState(null);
 
   // Employee tab state
   const [users,    setUsers]    = useState([]);
   const [usrLoad,  setUsrLoad]  = useState(false);
 
+  const { year: selYear, month: selMonth } = bsToADYearMonth(bsYear, bsMonth);
   const monthKey = `${selYear}-${String(selMonth).padStart(2, '0')}`;
-  const years    = Array.from({ length: 3 }, (_, i) => now.getFullYear() - i);
+  const curBS    = currentBSYear();
+  const bsYears  = [curBS, curBS - 1, curBS - 2];
 
   const fetchPayroll = useCallback(async () => {
     setPayLoading(true);
@@ -160,6 +159,17 @@ const PayrollPage = () => {
     }
   };
 
+  const handleMarkAllPaid = async () => {
+    if (!window.confirm(`Mark all pending payroll for ${fmtMonth(monthKey)} as paid?`)) return;
+    try {
+      const { data } = await api.patch(`/payroll/mark-all-paid/${monthKey}`);
+      setGenMsg(`Marked ${data.data.count} record(s) as paid.`);
+      fetchPayroll();
+    } catch (err) {
+      alert(err.response?.data?.message ?? 'Failed to mark all as paid.');
+    }
+  };
+
   // Summaries
   const totalNet     = records.reduce((s, r) => s + (r.finalPayableSalary ?? 0), 0);
   const totalEmpSSF  = records.reduce((s, r) => s + (r.employeeSSF ?? 0), 0);
@@ -190,18 +200,24 @@ const PayrollPage = () => {
           <>
             {/* Controls */}
             <div className="flex flex-wrap items-center gap-3">
-              <select value={selMonth} onChange={(e) => setSelMonth(Number(e.target.value))}
+              <select value={bsMonth} onChange={(e) => setBsMonth(Number(e.target.value))}
                 className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                {MONTHS.map((_, i) => <option key={i+1} value={i+1}>{adMonthToBSLabel(selYear, i+1)}</option>)}
+                {BS_MONTHS.map((name, i) => <option key={i} value={i}>{name}</option>)}
               </select>
-              <select value={selYear} onChange={(e) => setSelYear(Number(e.target.value))}
+              <select value={bsYear} onChange={(e) => setBsYear(Number(e.target.value))}
                 className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                {years.map((y) => <option key={y} value={y}>{adYearToBSYear(y)} BS</option>)}
+                {bsYears.map((y) => <option key={y} value={y}>{y} BS</option>)}
               </select>
               <button onClick={handleGenerate} disabled={generating}
                 className="btn-primary text-sm disabled:opacity-50">
                 {generating ? 'Generating…' : `Generate Payroll — ${fmtMonth(monthKey)}`}
               </button>
+              {pendingCount > 0 && (
+                <button onClick={handleMarkAllPaid}
+                  className="text-sm px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                  Mark All Paid ({pendingCount})
+                </button>
+              )}
             </div>
 
             {genMsg && (

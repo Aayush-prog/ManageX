@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
 import { downloadAllLeavesPDF } from '../../utils/pdfExport.js';
-import { fmtBSDate } from '../../utils/nepaliDate.js';
+import { fmtBSDate, currentBSYear, bsYearToADRange } from '../../utils/nepaliDate.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -69,19 +69,20 @@ const LeaveManagementPage = () => {
   const [leaves,     setLeaves]     = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [status,     setStatus]     = useState('Pending');
-  const [year,       setYear]       = useState(new Date().getFullYear());
+  const [bsYear,     setBsYear]     = useState(currentBSYear);
   const [rejectLeave, setRejectLeave] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { year };
+      const { startISO, endISO } = bsYearToADRange(bsYear);
+      const params = { startFrom: startISO, startTo: endISO };
       if (status !== 'All') params.status = status;
       const { data } = await api.get('/leaves/all', { params });
       setLeaves(data.data ?? []);
     } catch { /* ignore */ }
     finally { setLoading(false); }
-  }, [year, status]);
+  }, [bsYear, status]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -98,7 +99,6 @@ const LeaveManagementPage = () => {
     setLeaves((prev) => prev.map((l) => l._id === updated._id ? updated : l));
   };
 
-  const currentYear = new Date().getFullYear();
   const pending = leaves.filter((l) => l.status === 'Pending').length;
 
   return (
@@ -108,13 +108,13 @@ const LeaveManagementPage = () => {
         {/* Filters */}
         <div className="flex items-center gap-3 flex-wrap justify-between">
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-600">Year:</label>
+            <label className="text-sm font-medium text-gray-600">Year (BS):</label>
             <select
               className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
+              value={bsYear}
+              onChange={(e) => setBsYear(Number(e.target.value))}
             >
-              {[currentYear + 1, currentYear, currentYear - 1].map((y) => (
+              {[bsYear + 1, bsYear, bsYear - 1].map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
@@ -142,7 +142,7 @@ const LeaveManagementPage = () => {
           </div>
           {!loading && leaves.length > 0 && (
             <button
-              onClick={() => downloadAllLeavesPDF({ leaves, year })}
+              onClick={() => downloadAllLeavesPDF({ leaves, year: bsYear })}
               className="text-sm px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
             >
               ↓ Download PDF

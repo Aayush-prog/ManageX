@@ -16,6 +16,10 @@ const app = express();
 // Trust first proxy (Nginx) so req.ip reflects the real client IP
 app.set('trust proxy', 1);
 
+// Disable ETags so API responses are never cached (prevents 304s on dynamic data)
+app.set('etag', false);
+app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+
 // Security headers
 app.use(helmet());
 

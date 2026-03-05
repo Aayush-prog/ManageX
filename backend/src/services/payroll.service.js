@@ -87,6 +87,36 @@ export const markPaidService = async (payrollId) => {
   return payroll;
 };
 
+// ── Mark all pending payrolls for a month as Paid ────────────────────────────
+
+export const markAllPaidService = async (month) => {
+  const pending = await Payroll.find({ month, status: 'Pending' }).populate('user', 'name email');
+  if (!pending.length) return { count: 0 };
+
+  const now = new Date();
+  for (const payroll of pending) {
+    payroll.status = 'Paid';
+    payroll.paidAt = now;
+    await payroll.save();
+
+    let account = await SSFAccount.findOne({ user: payroll.user._id });
+    if (!account) account = new SSFAccount({ user: payroll.user._id });
+    account.totalEmployeeContribution = round2(account.totalEmployeeContribution + payroll.employeeSSF);
+    account.totalEmployerContribution = round2(account.totalEmployerContribution + payroll.employerSSF);
+    account.totalAccumulated          = round2(account.totalAccumulated          + payroll.totalSSF);
+    account.history.push({
+      month,
+      employeeContribution: payroll.employeeSSF,
+      employerContribution: payroll.employerSSF,
+      payrollId:            payroll._id,
+      paidAt:               now,
+    });
+    await account.save();
+  }
+
+  return { count: pending.length };
+};
+
 // ── Employee self-service ─────────────────────────────────────────────────────
 
 export const getMyPayrollService = async (userId) =>

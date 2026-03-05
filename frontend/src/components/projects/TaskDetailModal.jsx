@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import api from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
-import { fmtBSDate, fmtBSDateTime, fmtBSDateStr } from '../../utils/nepaliDate.js';
+import { fmtBSDate, fmtBSDateTime } from '../../utils/nepaliDate.js';
+import BSDatePicker from '../ui/BSDatePicker.jsx';
 
 const PRIORITY_BADGE = {
   Low:      'bg-gray-100 text-gray-600',
@@ -178,8 +179,7 @@ const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onC
                 </div>
                 <div>
                   <label className={labelCls}>Due Date</label>
-                  <input type="date" className={inputCls} value={editForm.dueDate} onChange={(e) => setField('dueDate', e.target.value)} />
-                  {editForm.dueDate && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(editForm.dueDate)}</p>}
+                  <BSDatePicker value={editForm.dueDate} onChange={(iso) => setField('dueDate', iso)} placeholder="Due date" />
                 </div>
               </div>
 

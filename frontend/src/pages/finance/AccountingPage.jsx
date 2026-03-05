@@ -1,15 +1,41 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
-import { fmtBSDate, fmtBSDateStr, curADMonth } from '../../utils/nepaliDate.js';
+import { fmtBSDate, BS_MONTHS, currentBSMonthYear, bsMonthToADRange } from '../../utils/nepaliDate.js';
 import { downloadExpensesPDF, downloadBillsPDF, downloadDepositsPDF } from '../../utils/pdfExport.js';
+import BSDatePicker from '../../components/ui/BSDatePicker.jsx';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmtNPR   = (n) => `Rs. ${(n ?? 0).toLocaleString('en-IN')}`;
 const fmtDate  = fmtBSDate;
 const todayISO = () => new Date().toISOString().slice(0, 10);
-const curMonth = curADMonth;
+
+// Inline BS month/year selector — returns { startISO, endISO } via onChange
+const BSMonthYearPicker = ({ value, onChange, className = '' }) => {
+  const handleYear  = (e) => onChange({ ...value, year: Number(e.target.value) });
+  const handleMonth = (e) => onChange({ ...value, month: Number(e.target.value) });
+  return (
+    <div className={`flex items-center gap-1 ${className}`}>
+      <select
+        className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        value={value.month}
+        onChange={handleMonth}
+      >
+        {BS_MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
+      </select>
+      <select
+        className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        value={value.year}
+        onChange={handleYear}
+      >
+        {[value.year + 1, value.year, value.year - 1, value.year - 2].map((y) => (
+          <option key={y} value={y}>{y}</option>
+        ))}
+      </select>
+    </div>
+  );
+};
 
 const CATEGORIES = ['Travel', 'Equipment', 'Software', 'Marketing', 'Operations', 'Other'];
 const DEPOSIT_CATEGORIES = ['Client Payment', 'Advance', 'Reimbursement', 'Grant', 'Investment', 'Other'];
@@ -146,8 +172,7 @@ const AddExpenseModal = ({ projects, onClose, onCreated }) => {
           </div>
           <div>
             <label className={labelCls}>Date</label>
-            <input type="date" className={inputCls} value={form.date} onChange={(e) => set('date', e.target.value)} />
-            {form.date && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.date)}</p>}
+            <BSDatePicker value={form.date} onChange={(iso) => set('date', iso)} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -224,8 +249,7 @@ const AddBillModal = ({ projects, onClose, onCreated }) => {
           </div>
           <div>
             <label className={labelCls}>Due Date</label>
-            <input type="date" className={inputCls} value={form.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
-            {form.dueDate && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.dueDate)}</p>}
+            <BSDatePicker value={form.dueDate} onChange={(iso) => set('dueDate', iso)} placeholder="Select due date" />
           </div>
         </div>
         <div>
@@ -290,18 +314,19 @@ const SetBudgetModal = ({ projects, existing, onClose, onSaved }) => {
 // ── Tab: Expenses ─────────────────────────────────────────────────────────────
 
 const ExpensesTab = ({ projects }) => {
-  const [expenses, setExpenses] = useState([]);
-  const [month,    setMonth]    = useState(curMonth());
-  const [loading,  setLoading]  = useState(true);
-  const [showAdd,  setShowAdd]  = useState(false);
+  const [expenses,  setExpenses]  = useState([]);
+  const [bsMonth,   setBsMonth]   = useState(currentBSMonthYear);
+  const [loading,   setLoading]   = useState(true);
+  const [showAdd,   setShowAdd]   = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
-    api.get('/accounting/expenses', { params: { month } })
+    const { startISO, endISO } = bsMonthToADRange(bsMonth.year, bsMonth.month);
+    api.get('/accounting/expenses', { params: { startFrom: startISO, startTo: endISO } })
       .then(({ data }) => setExpenses(data.data ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [month]);
+  }, [bsMonth]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -311,14 +336,13 @@ const ExpensesTab = ({ projects }) => {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <input type="month" className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            value={month} onChange={(e) => setMonth(e.target.value)} />
+          <BSMonthYearPicker value={bsMonth} onChange={setBsMonth} />
           <span className="text-sm text-gray-500">Total: <strong>{fmtNPR(total)}</strong></span>
         </div>
         <div className="flex items-center gap-2">
           {expenses.length > 0 && (
             <button
-              onClick={() => downloadExpensesPDF({ expenses, month })}
+              onClick={() => downloadExpensesPDF({ expenses, month: `${BS_MONTHS[bsMonth.month]} ${bsMonth.year}` })}
               className="text-sm px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
             >
               ↓ PDF
@@ -632,8 +656,7 @@ const AddDepositModal = ({ projects, onClose, onCreated }) => {
           </div>
           <div>
             <label className={labelCls}>Date</label>
-            <input type="date" className={inputCls} value={form.date} onChange={(e) => set('date', e.target.value)} />
-            {form.date && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.date)}</p>}
+            <BSDatePicker value={form.date} onChange={(iso) => set('date', iso)} />
           </div>
         </div>
         <div>
@@ -659,20 +682,21 @@ const AddDepositModal = ({ projects, onClose, onCreated }) => {
 
 const DepositsTab = ({ projects }) => {
   const [deposits, setDeposits] = useState([]);
-  const [month,    setMonth]    = useState(curMonth());
+  const [bsMonth,  setBsMonth]  = useState(currentBSMonthYear);
   const [loading,  setLoading]  = useState(true);
   const [showAdd,  setShowAdd]  = useState(false);
   const [selectedProject, setSelectedProject] = useState('');
 
   const load = useCallback(() => {
     setLoading(true);
-    const params = { month };
+    const { startISO, endISO } = bsMonthToADRange(bsMonth.year, bsMonth.month);
+    const params = { startFrom: startISO, startTo: endISO };
     if (selectedProject) params.projectId = selectedProject;
     api.get('/accounting/deposits', { params })
       .then(({ data }) => setDeposits(data.data ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [month, selectedProject]);
+  }, [bsMonth, selectedProject]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -682,8 +706,7 @@ const DepositsTab = ({ projects }) => {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3 flex-wrap">
-          <input type="month" className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            value={month} onChange={(e) => setMonth(e.target.value)} />
+          <BSMonthYearPicker value={bsMonth} onChange={setBsMonth} />
           <select
             className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
             value={selectedProject}
@@ -697,7 +720,7 @@ const DepositsTab = ({ projects }) => {
         <div className="flex items-center gap-2">
           {deposits.length > 0 && (
             <button
-              onClick={() => downloadDepositsPDF({ deposits, month })}
+              onClick={() => downloadDepositsPDF({ deposits, month: `${BS_MONTHS[bsMonth.month]} ${bsMonth.year}` })}
               className="text-sm px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
             >
               ↓ PDF
@@ -766,107 +789,235 @@ const DepositsTab = ({ projects }) => {
 
 // ── Tab: Summary ──────────────────────────────────────────────────────────────
 
-const SummaryTab = () => {
-  const [month,   setMonth]   = useState(curMonth());
-  const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
+const SummaryTab = ({ projects }) => {
+  const [mode,       setMode]       = useState('month');   // 'month' | 'project'
+  const [bsMonth,    setBsMonth]    = useState(currentBSMonthYear);
+  const [projectId,  setProjectId]  = useState('');
+  const [summary,    setSummary]    = useState(null);
+  const [projSummary, setProjSummary] = useState(null);
+  const [loading,    setLoading]    = useState(false);
 
+  // Month summary
   useEffect(() => {
+    if (mode !== 'month') return;
     setLoading(true);
-    api.get('/accounting/summary', { params: { month } })
+    const { startISO, endISO } = bsMonthToADRange(bsMonth.year, bsMonth.month);
+    api.get('/accounting/summary', { params: { startFrom: startISO, startTo: endISO } })
       .then(({ data }) => setSummary(data.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [month]);
+  }, [bsMonth, mode]);
 
-  if (loading) return <p className="text-sm text-gray-400">Loading…</p>;
-  if (!summary) return <p className="text-sm text-gray-400 italic">No data.</p>;
-
-  const { totalExpenses, expensesByCategory, payroll, budgets } = summary;
+  // Project summary
+  useEffect(() => {
+    if (mode !== 'project' || !projectId) return;
+    setLoading(true);
+    api.get(`/accounting/projects/${projectId}/financials`)
+      .then(({ data }) => setProjSummary(data.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [projectId, mode]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <label className="text-sm font-medium text-gray-700">Month:</label>
-        <input type="month" className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-          value={month} onChange={(e) => setMonth(e.target.value)} />
+    <div className="space-y-5">
+      {/* Mode toggle + filters */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex gap-1">
+          {['month', 'project'].map((m) => (
+            <button key={m} onClick={() => setMode(m)}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors capitalize ${
+                mode === m ? 'bg-brand-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}
+            >{m === 'month' ? 'By Month' : 'By Project'}</button>
+          ))}
+        </div>
+        {mode === 'month' && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-600">Month:</label>
+            <BSMonthYearPicker value={bsMonth} onChange={setBsMonth} />
+          </div>
+        )}
+        {mode === 'project' && (
+          <select
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+          >
+            <option value="">Select project…</option>
+            {projects.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
+          </select>
+        )}
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="stat-card">
-          <p className="text-sm text-gray-500">Total Expenses</p>
-          <p className="text-2xl font-bold text-gray-900">{fmtNPR(totalExpenses)}</p>
-          <p className="text-xs text-gray-400 mt-1">Approved only</p>
-        </div>
-        <div className="stat-card">
-          <p className="text-sm text-gray-500">Payroll (Gross)</p>
-          <p className="text-2xl font-bold text-gray-900">{fmtNPR(payroll.totalBaseSalary)}</p>
-          <p className="text-xs text-gray-400 mt-1">{payroll.count ?? 0} employees</p>
-        </div>
-        <div className="stat-card">
-          <p className="text-sm text-gray-500">Total SSF</p>
-          <p className="text-2xl font-bold text-brand-600">{fmtNPR(payroll.totalSSF)}</p>
-          <p className="text-xs text-gray-400 mt-1">Employee + Employer</p>
-        </div>
-        <div className="stat-card">
-          <p className="text-sm text-gray-500">Net Payable</p>
-          <p className="text-2xl font-bold text-green-600">{fmtNPR(payroll.totalNet)}</p>
-          <p className="text-xs text-gray-400 mt-1">After employee SSF</p>
-        </div>
-      </div>
+      {loading && <p className="text-sm text-gray-400">Loading…</p>}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Expenses by category */}
-        <div className="card">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Expenses by Category</h3>
-          {expensesByCategory.length === 0 ? (
-            <p className="text-sm text-gray-400 italic">No approved expenses this month.</p>
-          ) : (
-            <div className="space-y-2">
-              {expensesByCategory.map((c) => {
-                const pct = totalExpenses > 0 ? Math.round((c.total / totalExpenses) * 100) : 0;
-                return (
-                  <div key={c._id}>
-                    <div className="flex items-center justify-between text-sm mb-0.5">
-                      <span className="text-gray-600">{c._id}</span>
-                      <span className="text-gray-800 font-medium">{fmtNPR(c.total)} <span className="text-xs text-gray-400">({pct}%)</span></span>
-                    </div>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-brand-400 rounded-full" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
+      {/* ── Month view ── */}
+      {!loading && mode === 'month' && summary && (() => {
+        const { totalExpenses, expensesByCategory, payroll, budgets } = summary;
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="stat-card">
+                <p className="text-sm text-gray-500">Total Expenses</p>
+                <p className="text-2xl font-bold text-gray-900">{fmtNPR(totalExpenses)}</p>
+                <p className="text-xs text-gray-400 mt-1">Approved only</p>
+              </div>
+              <div className="stat-card">
+                <p className="text-sm text-gray-500">Payroll (Gross)</p>
+                <p className="text-2xl font-bold text-gray-900">{fmtNPR(payroll.totalBaseSalary)}</p>
+                <p className="text-xs text-gray-400 mt-1">{payroll.count ?? 0} employees</p>
+              </div>
+              <div className="stat-card">
+                <p className="text-sm text-gray-500">Total SSF</p>
+                <p className="text-2xl font-bold text-brand-600">{fmtNPR(payroll.totalSSF)}</p>
+                <p className="text-xs text-gray-400 mt-1">Employee + Employer</p>
+              </div>
+              <div className="stat-card">
+                <p className="text-sm text-gray-500">Net Payable</p>
+                <p className="text-2xl font-bold text-green-600">{fmtNPR(payroll.totalNet)}</p>
+                <p className="text-xs text-gray-400 mt-1">After employee SSF</p>
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Project budget usage */}
-        <div className="card">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Project Budget Usage</h3>
-          {budgets.length === 0 ? (
-            <p className="text-sm text-gray-400 italic">No project budgets set.</p>
-          ) : (
-            <div className="space-y-2">
-              {budgets.map((b) => {
-                const barColor = b.pct >= 90 ? 'bg-red-500' : b.pct >= 70 ? 'bg-amber-400' : 'bg-green-500';
-                return (
-                  <div key={b.projectId}>
-                    <div className="flex items-center justify-between text-sm mb-0.5">
-                      <span className="text-gray-600 truncate">{b.projectName}</span>
-                      <span className="text-gray-800 font-medium flex-shrink-0 ml-2">{b.pct}%</span>
-                    </div>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.min(b.pct, 100)}%` }} />
-                    </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="card">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Expenses by Category</h3>
+                {expensesByCategory.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic">No approved expenses this month.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {expensesByCategory.map((c) => {
+                      const pct = totalExpenses > 0 ? Math.round((c.total / totalExpenses) * 100) : 0;
+                      return (
+                        <div key={c._id}>
+                          <div className="flex items-center justify-between text-sm mb-0.5">
+                            <span className="text-gray-600">{c._id}</span>
+                            <span className="text-gray-800 font-medium">{fmtNPR(c.total)} <span className="text-xs text-gray-400">({pct}%)</span></span>
+                          </div>
+                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-brand-400 rounded-full" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                )}
+              </div>
+              <div className="card">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Project Budget Usage</h3>
+                {budgets.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic">No project budgets set.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {budgets.map((b) => {
+                      const barColor = b.pct >= 90 ? 'bg-red-500' : b.pct >= 70 ? 'bg-amber-400' : 'bg-green-500';
+                      return (
+                        <div key={b.projectId}>
+                          <div className="flex items-center justify-between text-sm mb-0.5">
+                            <span className="text-gray-600 truncate">{b.projectName}</span>
+                            <span className="text-gray-400 text-xs flex-shrink-0 ml-2">{fmtNPR(b.totalSpent)} / {fmtNPR(b.allocatedBudget)}</span>
+                          </div>
+                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.min(b.pct, 100)}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Project view ── */}
+      {!loading && mode === 'project' && !projectId && (
+        <p className="text-sm text-gray-400 italic">Select a project to view its financial summary.</p>
+      )}
+      {!loading && mode === 'project' && projectId && projSummary && (() => {
+        const { allocatedBudget, totalDeposits, totalExpenses, totalBillsPaid, totalBillsUnpaid,
+                totalSpent, balance, remainingBudget, expensesByCategory } = projSummary;
+        const budgetPct = allocatedBudget > 0 ? Math.round((totalSpent / allocatedBudget) * 100) : 0;
+        const budgetBarColor = budgetPct >= 90 ? 'bg-red-500' : budgetPct >= 70 ? 'bg-amber-400' : 'bg-green-500';
+        return (
+          <div className="space-y-5">
+            {/* KPI cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="stat-card">
+                <p className="text-sm text-gray-500">Allocated Budget</p>
+                <p className="text-2xl font-bold text-gray-900">{fmtNPR(allocatedBudget)}</p>
+                <p className="text-xs text-gray-400 mt-1">Total allocated</p>
+              </div>
+              <div className="stat-card">
+                <p className="text-sm text-gray-500">Total Deposits</p>
+                <p className="text-2xl font-bold text-green-600">{fmtNPR(totalDeposits)}</p>
+                <p className="text-xs text-gray-400 mt-1">All client payments</p>
+              </div>
+              <div className="stat-card">
+                <p className="text-sm text-gray-500">Total Spent</p>
+                <p className="text-2xl font-bold text-red-600">{fmtNPR(totalSpent)}</p>
+                <p className="text-xs text-gray-400 mt-1">Expenses + paid bills</p>
+              </div>
+              <div className="stat-card">
+                <p className="text-sm text-gray-500">Remaining Budget</p>
+                <p className={`text-2xl font-bold ${remainingBudget < 0 ? 'text-red-600' : 'text-brand-600'}`}>{fmtNPR(remainingBudget)}</p>
+                <p className="text-xs text-gray-400 mt-1">Allocated − spent</p>
+              </div>
+              <div className="stat-card">
+                <p className="text-sm text-gray-500">Net Balance</p>
+                <p className={`text-2xl font-bold ${balance < 0 ? 'text-red-600' : 'text-green-600'}`}>{fmtNPR(balance)}</p>
+                <p className="text-xs text-gray-400 mt-1">Deposits − spent</p>
+              </div>
+              <div className="stat-card">
+                <p className="text-sm text-gray-500">Outstanding Bills</p>
+                <p className="text-2xl font-bold text-amber-600">{fmtNPR(totalBillsUnpaid)}</p>
+                <p className="text-xs text-gray-400 mt-1">Unpaid bills</p>
+              </div>
+            </div>
+
+            {/* Budget usage bar */}
+            {allocatedBudget > 0 && (
+              <div className="card">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="font-medium text-gray-700">Budget Usage</span>
+                  <span className="text-gray-500">{fmtNPR(totalSpent)} / {fmtNPR(allocatedBudget)} ({budgetPct}%)</span>
+                </div>
+                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${budgetBarColor} transition-all`} style={{ width: `${Math.min(budgetPct, 100)}%` }} />
+                </div>
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>Expenses: {fmtNPR(totalExpenses)}</span>
+                  <span>Bills paid: {fmtNPR(totalBillsPaid)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Expenses by category */}
+            {expensesByCategory.length > 0 && (
+              <div className="card">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Expenses by Category</h3>
+                <div className="space-y-2">
+                  {expensesByCategory.map((c) => {
+                    const pct = totalExpenses > 0 ? Math.round((c.total / totalExpenses) * 100) : 0;
+                    return (
+                      <div key={c.category}>
+                        <div className="flex items-center justify-between text-sm mb-0.5">
+                          <span className="text-gray-600">{c.category}</span>
+                          <span className="text-gray-800 font-medium">{fmtNPR(c.total)} <span className="text-xs text-gray-400">({pct}%)</span></span>
+                        </div>
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-brand-400 rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 };
@@ -908,7 +1059,7 @@ const AccountingPage = () => {
         {tab === 'Deposits'  && <DepositsTab projects={projects} />}
         {tab === 'Bills'     && <BillsTab    projects={projects} />}
         {tab === 'Budgets'   && <BudgetsTab  projects={projects} />}
-        {tab === 'Summary'   && <SummaryTab />}
+        {tab === 'Summary'   && <SummaryTab projects={projects} />}
       </div>
     </DashboardLayout>
   );

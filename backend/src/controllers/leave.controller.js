@@ -17,10 +17,11 @@ export const requestLeave = async (req, res) => {
   } catch (e) { err(res, e); }
 };
 
-// GET /api/leaves/my?year=
+// GET /api/leaves/my?year=&startFrom=&startTo=
 export const getMyLeaves = async (req, res) => {
   try {
-    ok(res, await getMyLeavesService(req.user.id, req.query.year));
+    const { year, startFrom, startTo } = req.query;
+    ok(res, await getMyLeavesService(req.user.id, year, startFrom, startTo));
   } catch (e) { err(res, e); }
 };
 

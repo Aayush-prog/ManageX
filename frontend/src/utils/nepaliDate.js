@@ -104,6 +104,51 @@ export const fmtTime = (isoOrDate) => {
   } catch { return '—'; }
 };
 
+// BS year + month (0-indexed) → { year, month } in AD (1-indexed month)
+// Uses the AD date of Baisakh/month-1 of BS month to determine AD year+month
+export const bsToADYearMonth = (bsYear, bsMonthIndex) => {
+  const d = new NepaliDate(bsYear, bsMonthIndex, 1).toJsDate();
+  return { year: d.getFullYear(), month: d.getMonth() + 1 };
+};
+
+// Current BS year
+export const currentBSYear = () => {
+  try { return new NepaliDate(new Date()).getYear(); } catch { return 2082; }
+};
+
+// Current BS month/year as { year, month } (month 0-indexed)
+export const currentBSMonthYear = () => {
+  try {
+    const nd = new NepaliDate(new Date());
+    return { year: nd.getYear(), month: nd.getMonth() };
+  } catch { return { year: 2082, month: 0 }; }
+};
+
+// Format a JS Date as local YYYY-MM-DD (avoids UTC shift bugs)
+const localISO = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+// BS year → AD ISO date range (Baisakh 1 → Chaitra last day)
+export const bsYearToADRange = (bsYear) => {
+  const start = new NepaliDate(bsYear, 0, 1).toJsDate();
+  const nextYearStart = new NepaliDate(bsYear + 1, 0, 1).toJsDate();
+  const end = new Date(nextYearStart.getTime() - 86_400_000);
+  return { startISO: localISO(start), endISO: localISO(end) };
+};
+
+// BS month → AD ISO date range
+export const bsMonthToADRange = (bsYear, bsMonthIndex) => {
+  const start = new NepaliDate(bsYear, bsMonthIndex, 1).toJsDate();
+  let nextYear = bsYear, nextMonth = bsMonthIndex + 1;
+  if (nextMonth === 12) { nextMonth = 0; nextYear++; }
+  const nextMonthStart = new NepaliDate(nextYear, nextMonth, 1).toJsDate();
+  const end = new Date(nextMonthStart.getTime() - 86_400_000);
+  return {
+    startISO: localISO(start),
+    endISO:   localISO(end),
+  };
+};
+
 // "Falgun 20, 2082 HH:MM" for datetime display
 export const fmtBSDateTime = (isoOrDate) => {
   if (!isoOrDate) return '—';

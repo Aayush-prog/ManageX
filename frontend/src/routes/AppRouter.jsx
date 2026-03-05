@@ -15,6 +15,7 @@ import LeavePage            from '../pages/leave/LeavePage.jsx';
 import LeaveManagementPage  from '../pages/leave/LeaveManagementPage.jsx';
 import AdminDashboard       from '../pages/dashboards/AdminDashboard.jsx';
 import ManagerDashboard     from '../pages/dashboards/ManagerDashboard.jsx';
+import TeamPage             from '../pages/manager/TeamPage.jsx';
 import FinanceDashboard     from '../pages/dashboards/FinanceDashboard.jsx';
 import StaffDashboard       from '../pages/dashboards/StaffDashboard.jsx';
 
@@ -68,6 +69,9 @@ const AppRouter = () => (
       </Route>
 
       {/* Manager */}
+      <Route element={<ProtectedRoute allowedRoles={['manager', 'admin']} />}>
+        <Route path="/manager/team" element={<TeamPage />} />
+      </Route>
       <Route element={<ProtectedRoute allowedRoles={['manager']} />}>
         <Route path="/manager/dashboard" element={<ManagerDashboard />} />
       </Route>

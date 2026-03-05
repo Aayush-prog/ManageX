@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api.js';
-import { fmtBSDateStr } from '../../utils/nepaliDate.js';
+import BSDatePicker from '../ui/BSDatePicker.jsx';
 
 const INITIAL = { name: '', description: '', startDate: '', endDate: '', status: 'Planning', members: [] };
 
@@ -67,13 +67,11 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Start Date</label>
-              <input type="date" className={inputCls} value={form.startDate} onChange={(e) => set('startDate', e.target.value)} />
-              {form.startDate && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.startDate)}</p>}
+              <BSDatePicker value={form.startDate} onChange={(iso) => set('startDate', iso)} placeholder="Start date" />
             </div>
             <div>
               <label className={labelCls}>End Date</label>
-              <input type="date" className={inputCls} value={form.endDate} onChange={(e) => set('endDate', e.target.value)} />
-              {form.endDate && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.endDate)}</p>}
+              <BSDatePicker value={form.endDate} onChange={(iso) => set('endDate', iso)} placeholder="End date" />
             </div>
           </div>
 

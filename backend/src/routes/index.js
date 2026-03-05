@@ -8,6 +8,7 @@ import taskRoutes        from './task.routes.js';
 import accountingRoutes  from './accounting.routes.js';
 import leaveRoutes       from './leave.routes.js';
 import notificationRoutes   from './notification.routes.js';
+import reportRoutes         from './report.routes.js';
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use('/tasks',       taskRoutes);
 router.use('/accounting',  accountingRoutes);
 router.use('/leaves',      leaveRoutes);
 router.use('/notifications',  notificationRoutes);
+router.use('/reports',        reportRoutes);
 
 export default router;

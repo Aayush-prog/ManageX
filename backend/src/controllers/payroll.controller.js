@@ -1,6 +1,7 @@
 import {
   generatePayrollService,
   markPaidService,
+  markAllPaidService,
   getMyPayrollService,
   getMySSFService,
   getMonthlyPayrollService,
@@ -20,6 +21,14 @@ export const markPaid = async (req, res, next) => {
   try {
     const payroll = await markPaidService(req.params.id);
     return res.json({ success: true, data: payroll });
+  } catch (err) { next(err); }
+};
+
+// PATCH /api/payroll/mark-all-paid/:month   [finance, ceo]
+export const markAllPaid = async (req, res, next) => {
+  try {
+    const result = await markAllPaidService(req.params.month);
+    return res.json({ success: true, data: result });
   } catch (err) { next(err); }
 };
 

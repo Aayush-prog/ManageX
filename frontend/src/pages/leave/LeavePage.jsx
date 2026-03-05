@@ -3,7 +3,8 @@ import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
 import { downloadLeavePDF } from '../../utils/pdfExport.js';
-import { fmtBSDate, fmtBSDateStr } from '../../utils/nepaliDate.js';
+import { fmtBSDate, currentBSYear, bsYearToADRange } from '../../utils/nepaliDate.js';
+import BSDatePicker from '../../components/ui/BSDatePicker.jsx';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -69,13 +70,11 @@ const RequestLeaveModal = ({ onClose, onRequested }) => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Start Date *</label>
-              <input type="date" className={inputCls} value={form.startDate} onChange={(e) => set('startDate', e.target.value)} />
-              {form.startDate && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.startDate)}</p>}
+              <BSDatePicker value={form.startDate} onChange={(iso) => set('startDate', iso)} placeholder="Start date" />
             </div>
             <div>
               <label className={labelCls}>End Date *</label>
-              <input type="date" className={inputCls} value={form.endDate} onChange={(e) => set('endDate', e.target.value)} />
-              {form.endDate && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.endDate)}</p>}
+              <BSDatePicker value={form.endDate} onChange={(iso) => set('endDate', iso)} placeholder="End date" />
             </div>
           </div>
           {days > 0 && (
@@ -129,26 +128,29 @@ const LeavePage = () => {
   const [quota,    setQuota]    = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [year,     setYear]     = useState(new Date().getFullYear());
+  const [bsYear,   setBsYear]   = useState(currentBSYear);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/leaves/my', { params: { year } });
+      const { startISO, endISO } = bsYearToADRange(bsYear);
+      const { data } = await api.get('/leaves/my', { params: { startFrom: startISO, startTo: endISO } });
       setLeaves(data.data.leaves ?? []);
       setQuota(data.data.quota ?? null);
     } catch { /* ignore */ }
     finally { setLoading(false); }
-  }, [year]);
+  }, [bsYear]);
 
   useEffect(() => { load(); }, [load]);
 
   const handleRequested = (leave) => {
     setLeaves((prev) => [leave, ...prev]);
-    load(); // refresh quota
+    // Refresh quota silently without triggering loading state or overwriting the list
+    const { startISO, endISO } = bsYearToADRange(bsYear);
+    api.get('/leaves/my', { params: { startFrom: startISO, startTo: endISO } })
+      .then(({ data }) => setQuota(data.data.quota ?? null))
+      .catch(() => {});
   };
-
-  const currentYear = new Date().getFullYear();
 
   return (
     <DashboardLayout title="My Leave">
@@ -157,13 +159,13 @@ const LeavePage = () => {
         {/* Year selector + action */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-600">Year:</label>
+            <label className="text-sm font-medium text-gray-600">Year (BS):</label>
             <select
               className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
+              value={bsYear}
+              onChange={(e) => setBsYear(Number(e.target.value))}
             >
-              {[currentYear + 1, currentYear, currentYear - 1].map((y) => (
+              {[bsYear + 1, bsYear, bsYear - 1].map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
@@ -171,7 +173,7 @@ const LeavePage = () => {
           <div className="flex items-center gap-2">
             {!loading && leaves.length > 0 && (
               <button
-                onClick={() => downloadLeavePDF({ leaves, quota, userName: user?.name ?? 'User', year })}
+                onClick={() => downloadLeavePDF({ leaves, quota, userName: user?.name ?? 'User', year: bsYear })}
                 className="text-sm px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
               >
                 ↓ Download PDF
@@ -207,7 +209,7 @@ const LeavePage = () => {
           {loading ? (
             <p className="text-sm text-gray-400 px-4 py-6">Loading…</p>
           ) : leaves.length === 0 ? (
-            <p className="text-sm text-gray-400 italic px-4 py-6">No leave requests for {year}.</p>
+            <p className="text-sm text-gray-400 italic px-4 py-6">No leave requests for {bsYear} BS.</p>
           ) : (
             <table className="w-full text-sm">
               <thead>

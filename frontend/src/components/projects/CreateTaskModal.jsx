@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import api from '../../services/api.js';
-import { fmtBSDateStr } from '../../utils/nepaliDate.js';
+import BSDatePicker from '../ui/BSDatePicker.jsx';
 
 const STATUSES   = ['Backlog', 'Todo', 'InProgress', 'Review', 'Done'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
@@ -79,8 +79,7 @@ const CreateTaskModal = ({ projectId, members = [], defaultStatus = 'Backlog', o
             </div>
             <div>
               <label className={labelCls}>Due Date</label>
-              <input type="date" className={inputCls} value={form.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
-              {form.dueDate && <p className="text-xs text-brand-600 mt-1">{fmtBSDateStr(form.dueDate)}</p>}
+              <BSDatePicker value={form.dueDate} onChange={(iso) => set('dueDate', iso)} placeholder="Due date" />
             </div>
           </div>
 

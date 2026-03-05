@@ -23,8 +23,16 @@ export const getBudgets    = async (req, res) => { try { ok(res, await getBudget
 
 export const getSummary    = async (req, res) => {
   try {
-    const month = req.query.month ?? new Date().toISOString().slice(0, 7);
-    ok(res, await getSummaryService(month));
+    const { startFrom, startTo } = req.query;
+    let month = req.query.month;
+    if (!month && startFrom) {
+      // Derive AD month from the midpoint of the date range (for payroll matching)
+      const mid = new Date(startFrom);
+      mid.setDate(mid.getDate() + 15);
+      month = mid.toISOString().slice(0, 7);
+    }
+    month = month ?? new Date().toISOString().slice(0, 7);
+    ok(res, await getSummaryService(month, startFrom, startTo));
   } catch (e) { err(res, e); }
 };
 

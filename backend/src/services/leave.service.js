@@ -30,6 +30,19 @@ const usedDays = async (userId, type, year) => {
   return records.reduce((sum, r) => sum + r.days, 0);
 };
 
+/**
+ * How many approved/pending leave days a user has used for a given type within a date range.
+ */
+const usedDaysByRange = async (userId, type, startFrom, startTo) => {
+  const records = await Leave.find({
+    user: userId,
+    type,
+    startDate: { $gte: startFrom, $lte: startTo }, // String comparison (YYYY-MM-DD sorts lexicographically)
+    status: { $in: ['Approved', 'Pending'] },
+  });
+  return records.reduce((sum, r) => sum + r.days, 0);
+};
+
 // ── Request leave ──────────────────────────────────────────────────────────────
 
 export const requestLeaveService = async (userId, { type, startDate, endDate, reason }) => {
@@ -76,24 +89,36 @@ export const requestLeaveService = async (userId, { type, startDate, endDate, re
 
 // ── My leaves ─────────────────────────────────────────────────────────────────
 
-export const getMyLeavesService = async (userId, year) => {
+export const getMyLeavesService = async (userId, year, startFrom, startTo) => {
   const filter = { user: userId };
-  if (year) filter.year = Number(year);
+  if (startFrom && startTo) {
+    filter.startDate = { $gte: startFrom, $lte: startTo }; // String comparison (YYYY-MM-DD)
+  } else if (year) {
+    filter.year = Number(year);
+  }
+
   const leaves = await Leave.find(filter)
     .populate('approvedBy', 'name')
     .sort({ createdAt: -1 })
     .lean();
 
-  const currentYear = year ? Number(year) : new Date().getFullYear();
-  const [sickUsed, annualUsed] = await Promise.all([
-    usedDays(userId, 'Sick', currentYear),
-    usedDays(userId, 'Annual', currentYear),
-  ]);
+  let sickUsed, annualUsed;
+  if (startFrom && startTo) {
+    [sickUsed, annualUsed] = await Promise.all([
+      usedDaysByRange(userId, 'Sick', startFrom, startTo),
+      usedDaysByRange(userId, 'Annual', startFrom, startTo),
+    ]);
+  } else {
+    const currentYear = year ? Number(year) : new Date().getFullYear();
+    [sickUsed, annualUsed] = await Promise.all([
+      usedDays(userId, 'Sick', currentYear),
+      usedDays(userId, 'Annual', currentYear),
+    ]);
+  }
 
   return {
     leaves,
     quota: {
-      year: currentYear,
       sick:   { total: SICK_QUOTA,   used: sickUsed,   remaining: SICK_QUOTA - sickUsed },
       annual: { total: ANNUAL_QUOTA, used: annualUsed, remaining: ANNUAL_QUOTA - annualUsed },
     },
@@ -102,9 +127,13 @@ export const getMyLeavesService = async (userId, year) => {
 
 // ── All leaves (manager / admin) ───────────────────────────────────────────────
 
-export const getAllLeavesService = async ({ year, status, userId: filterUserId } = {}) => {
+export const getAllLeavesService = async ({ year, startFrom, startTo, status, userId: filterUserId } = {}) => {
   const filter = {};
-  if (year)         filter.year   = Number(year);
+  if (startFrom && startTo) {
+    filter.startDate = { $gte: startFrom, $lte: startTo }; // String comparison (YYYY-MM-DD)
+  } else if (year) {
+    filter.year = Number(year);
+  }
   if (status)       filter.status = status;
   if (filterUserId) filter.user   = filterUserId;
 
