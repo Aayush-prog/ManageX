@@ -1,7 +1,7 @@
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 
 const ITDashboard = () => (
-  <DashboardLayout title="IT Dashboard">
+  <DashboardLayout title="IT Dashboard" hideClockStatus={false} hideSalaryWidget={false}>
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {['Total Users', 'Active Sessions', 'Open Tickets', 'System Health'].map((label) => (

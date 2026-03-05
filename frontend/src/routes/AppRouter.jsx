@@ -13,6 +13,7 @@ import KanbanPage           from '../pages/projects/KanbanPage.jsx';
 import MyTasksPage          from '../pages/projects/MyTasksPage.jsx';
 import LeavePage            from '../pages/leave/LeavePage.jsx';
 import LeaveManagementPage  from '../pages/leave/LeaveManagementPage.jsx';
+import CalendarPage         from '../pages/calendar/CalendarPage.jsx';
 import AdminDashboard       from '../pages/dashboards/AdminDashboard.jsx';
 import ManagerDashboard     from '../pages/dashboards/ManagerDashboard.jsx';
 import TeamPage             from '../pages/manager/TeamPage.jsx';
@@ -43,6 +44,7 @@ const AppRouter = () => (
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<RoleRedirect />} />
         {/* Shared — every authenticated user */}
+        <Route path="/calendar"        element={<CalendarPage />} />
         <Route path="/attendance"      element={<AttendancePage />} />
         <Route path="/payroll/me"      element={<MyPayrollPage />} />
         <Route path="/projects"        element={<ProjectsPage />} />

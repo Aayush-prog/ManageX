@@ -22,7 +22,7 @@ const StaffDashboard = () => {
   const overdue  = tasks.filter((t) => t.status !== 'Done' && t.dueDate && new Date(t.dueDate) < new Date()).length;
 
   return (
-    <DashboardLayout title="My Dashboard">
+    <DashboardLayout title="My Dashboard" hideClockStatus={false} hideSalaryWidget={false}>
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">

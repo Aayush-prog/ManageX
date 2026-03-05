@@ -9,6 +9,7 @@ import accountingRoutes  from './accounting.routes.js';
 import leaveRoutes       from './leave.routes.js';
 import notificationRoutes   from './notification.routes.js';
 import reportRoutes         from './report.routes.js';
+import calendarRoutes       from './calendar.routes.js';
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use('/accounting',  accountingRoutes);
 router.use('/leaves',      leaveRoutes);
 router.use('/notifications',  notificationRoutes);
 router.use('/reports',        reportRoutes);
+router.use('/calendar',       calendarRoutes);
 
 export default router;

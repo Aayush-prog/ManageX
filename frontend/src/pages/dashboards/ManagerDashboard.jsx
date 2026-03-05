@@ -60,7 +60,7 @@ const ManagerDashboard = () => {
   }, []);
 
   return (
-    <DashboardLayout title="Manager Dashboard">
+    <DashboardLayout title="Manager Dashboard" hideClockStatus={false} hideSalaryWidget={false}>
       <div className="space-y-6">
 
         {/* Stat cards */}

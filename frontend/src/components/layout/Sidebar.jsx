@@ -4,6 +4,7 @@ import { useAuth } from '../../store/AuthContext.jsx';
 import { ChangePasswordModal } from '../../pages/admin/UsersPage.jsx';
 
 const SHARED_ITEMS = [
+  { label: 'Calendar',   to: '/calendar' },
   { label: 'Attendance', to: '/attendance' },
   { label: 'My Payroll', to: '/payroll/me' },
   { label: 'My Leave',   to: '/leave' },

@@ -1,7 +1,7 @@
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 
 const PhotographerDashboard = () => (
-  <DashboardLayout title="Photographer Dashboard">
+  <DashboardLayout title="Photographer Dashboard" hideClockStatus={false} hideSalaryWidget={false}>
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {['Assigned Shoots', 'Photos Submitted', 'Under Review', 'Storage Used'].map((label) => (

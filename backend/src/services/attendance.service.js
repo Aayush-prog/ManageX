@@ -77,24 +77,18 @@ const buildSummary = (records) => {
   };
 };
 
-export const getMyAttendanceService = async (userId, year, month) => {
-  const from = `${year}-${String(month).padStart(2, '0')}-01`;
-  const to   = `${year}-${String(month).padStart(2, '0')}-31`;
-
+export const getMyAttendanceService = async (userId, start, end) => {
   const records = await Attendance
-    .find({ user: userId, date: { $gte: from, $lte: to } })
+    .find({ user: userId, date: { $gte: start, $lte: end } })
     .sort({ date: -1 })
     .lean();
 
   return { records, summary: buildSummary(records) };
 };
 
-export const getTeamAttendanceService = async (year, month) => {
-  const from = `${year}-${String(month).padStart(2, '0')}-01`;
-  const to   = `${year}-${String(month).padStart(2, '0')}-31`;
-
+export const getTeamAttendanceService = async (start, end) => {
   return Attendance
-    .find({ date: { $gte: from, $lte: to } })
+    .find({ date: { $gte: start, $lte: end } })
     .populate('user', 'name email role')
     .sort({ date: -1, clockIn: -1 })
     .lean();

@@ -224,13 +224,50 @@ export const addCommentService = async (taskId, userId, text) => {
     taskId,
     { $push: { comments: { user: userId, text } } },
     { new: true }
-  ).populate('comments.user', 'name');
+  )
+    .populate('comments.user', 'name')
+    .populate({ path: 'project', select: 'name members', populate: { path: 'members', select: 'name email' } });
 
   if (!task) {
     const err = new Error('Task not found');
     err.statusCode = 404;
     throw err;
   }
+
+  // Parse @mentions and notify project members
+  const mentionMatches = [...text.matchAll(/@([\w ]+?)(?=\s@|\s*$)/g)].map((m) => m[1].trim().toLowerCase());
+  if (mentionMatches.length && task.project?.members?.length) {
+    const commenter = await User.findById(userId).select('name').lean();
+    const commenterName = commenter?.name ?? 'Someone';
+
+    for (const member of task.project.members) {
+      if (member._id.toString() === userId.toString()) continue;
+      const memberNameLower = member.name?.toLowerCase() ?? '';
+      const wasMentioned = mentionMatches.some(
+        (m) => memberNameLower === m || memberNameLower.startsWith(m + ' ') || memberNameLower.split(' ')[0] === m
+      );
+      if (!wasMentioned) continue;
+
+      notify(member._id, {
+        type:    'mention',
+        title:   'You were mentioned',
+        message: `${commenterName} mentioned you in "${task.title}"`,
+        link:    `/projects/${task.project._id}`,
+      });
+
+      if (member.email) {
+        const { subject, html } = tpl.mentionedInComment({
+          mentionedName: member.name,
+          commenterName,
+          taskTitle:     task.title,
+          projectName:   task.project.name,
+          comment:       text,
+        });
+        sendEmail({ to: member.email, subject, html });
+      }
+    }
+  }
+
   return task;
 };
 

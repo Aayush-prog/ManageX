@@ -305,6 +305,45 @@ npm run build
 
 ---
 
+## Calendar Bulk Upload (XLSX Format)
+
+Managers and admins can bulk-import calendar events via the **"Bulk Upload"** button on the Calendar page.
+
+### File Requirements
+
+- Format: `.xlsx` or `.xls`
+- First row must be the **header row** (column names)
+- Dates must be in **`YYYY-MM-DD`** format using **Bikram Sambat (BS)** — e.g. `2081-11-14`
+- Maximum file size: **5 MB**
+
+### Columns
+
+| Column        | Required | Allowed Values                      | Description                          |
+|---------------|----------|-------------------------------------|--------------------------------------|
+| `title`       | Yes      | Any text                            | Event name                           |
+| `date`        | Yes      | `YYYY-MM-DD` BS (e.g. `2081-11-14`) | Date of the event in Nepali calendar |
+| `type`        | Yes      | `road`, `trail`, `event`            | Category of the event                |
+| `description` | No       | Any text                            | Optional notes or details            |
+
+> Column names are case-insensitive (`Title` = `title`).
+> Dates are entered in **BS (Bikram Sambat)** — the system converts them to AD automatically.
+
+### Example
+
+| title              | date       | type  | description                   |
+|--------------------|------------|-------|-------------------------------|
+| Kathmandu Road Run | 2081-12-30 | road  | Annual spring road race       |
+| Everest Trail Race | 2082-02-05 | trail | High altitude trail marathon  |
+| Club Meet & Greet  | 2082-01-22 | event | Monthly club gathering        |
+
+### Notes
+
+- Rows with a missing `title`, invalid `date`, or invalid `type` are **skipped** and reported back.
+- Valid rows are imported even if some rows have errors.
+- The upload response shows: rows imported, rows skipped, and per-row error messages.
+
+---
+
 ## Known Gaps / TODO
 
 - No seed script — users must be created manually via MongoDB shell or admin API

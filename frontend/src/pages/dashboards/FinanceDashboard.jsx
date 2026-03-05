@@ -27,7 +27,7 @@ const FinanceDashboard = () => {
   const pendingCount = records.filter((r) => r.status === 'Pending').length;
 
   return (
-    <DashboardLayout title="Finance Dashboard" hideSalaryWidget>
+    <DashboardLayout title="Finance Dashboard" hideClockStatus={false} hideSalaryWidget={false}>
       <div className="space-y-6">
 
         {/* This month summary */}

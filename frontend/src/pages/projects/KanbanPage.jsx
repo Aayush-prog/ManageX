@@ -6,8 +6,10 @@ import TaskCard from '../../components/projects/TaskCard.jsx';
 import CreateTaskModal from '../../components/projects/CreateTaskModal.jsx';
 import TaskDetailModal from '../../components/projects/TaskDetailModal.jsx';
 import EditProjectModal from '../../components/projects/EditProjectModal.jsx';
+import BSDatePicker from '../../components/ui/BSDatePicker.jsx';
 import api from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
+import { fmtBSDate } from '../../utils/nepaliDate.js';
 
 const COLUMNS = ['Backlog', 'Todo', 'InProgress', 'Review', 'Done'];
 
@@ -44,8 +46,17 @@ const KanbanPage = () => {
   const [createStatus,  setCreateStatus]  = useState(null);
   const [detailTask,    setDetailTask]    = useState(null);
   const [showEditProject, setShowEditProject] = useState(false);
+  const [editingDeadline, setEditingDeadline] = useState(false);
 
   const canManage = ['manager', 'admin'].includes(user?.permissionLevel);
+
+  const handleDeadlineChange = async (iso) => {
+    try {
+      await api.patch(`/projects/${id}`, { endDate: iso || null });
+      setProject((p) => ({ ...p, endDate: iso || null }));
+    } catch { /* ignore */ }
+    setEditingDeadline(false);
+  };
 
   const load = () => {
     api.get(`/projects/${id}`)
@@ -154,9 +165,27 @@ const KanbanPage = () => {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
             <span className="text-sm text-gray-500">{doneTasks}/{totalTasks} done</span>
             <span className="text-sm font-medium text-brand-600">{pct}%</span>
+            {/* Deadline */}
+            <div className="flex items-center gap-1.5 text-sm text-gray-500 border border-gray-200 rounded-lg px-2 py-1">
+              <span className="text-xs text-gray-400">Deadline:</span>
+              {canManage && editingDeadline ? (
+                <BSDatePicker
+                  value={project?.endDate ? new Date(project.endDate).toISOString().slice(0, 10) : ''}
+                  onChange={handleDeadlineChange}
+                  placeholder="Pick date"
+                />
+              ) : (
+                <button
+                  onClick={() => canManage && setEditingDeadline(true)}
+                  className={`text-sm ${canManage ? 'hover:text-brand-600 cursor-pointer' : 'cursor-default'} ${project?.endDate ? 'text-gray-700' : 'text-gray-400'}`}
+                >
+                  {project?.endDate ? fmtBSDate(project.endDate) : 'Not set'}
+                </button>
+              )}
+            </div>
             {canManage && (
               <>
                 <button

@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(cd /Users/bombhu/Documents/Work/management/backend && npm install xlsx --save 2>&1 | tail -5)",
+      "Bash(cd /Users/bombhu/Documents/Work/management/frontend && npm install xlsx --save 2>&1 | tail -5)"
     ]
   }
 }

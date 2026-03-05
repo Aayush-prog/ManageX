@@ -6,8 +6,8 @@ import SalaryWidget from '../payroll/SalaryWidget.jsx';
 const DashboardLayout = ({
   title,
   children,
-  hideClockStatus  = false,
-  hideSalaryWidget = false,
+  hideClockStatus  = true,
+  hideSalaryWidget = true,
 }) => (
   <div className="flex min-h-screen bg-gray-50">
     <Sidebar />

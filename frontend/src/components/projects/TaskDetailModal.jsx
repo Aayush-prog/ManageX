@@ -52,10 +52,14 @@ const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onC
   });
   const [saving,      setSaving]      = useState(false);
   const [editError,   setEditError]   = useState('');
-  const [commentText, setCommentText] = useState('');
-  const [submitting,  setSubmitting]  = useState(false);
-  const [uploading,   setUploading]   = useState(false);
-  const fileRef = useRef(null);
+  const [commentText,   setCommentText]   = useState('');
+  const [submitting,    setSubmitting]    = useState(false);
+  const [uploading,     setUploading]     = useState(false);
+  const [mentionQuery,  setMentionQuery]  = useState('');
+  const [showMentions,  setShowMentions]  = useState(false);
+  const [mentionStart,  setMentionStart]  = useState(0);
+  const fileRef    = useRef(null);
+  const commentRef = useRef(null);
 
   const setField = (k, v) => setEditForm((p) => ({ ...p, [k]: v }));
 
@@ -81,6 +85,33 @@ const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onC
       setSaving(false);
     }
   };
+
+  const handleCommentChange = (e) => {
+    const val = e.target.value;
+    setCommentText(val);
+    const pos = e.target.selectionStart;
+    const before = val.slice(0, pos);
+    const match = before.match(/@(\w*)$/);
+    if (match) {
+      setMentionQuery(match[1].toLowerCase());
+      setMentionStart(pos - match[0].length);
+      setShowMentions(true);
+    } else {
+      setShowMentions(false);
+    }
+  };
+
+  const insertMention = (member) => {
+    const after = commentText.slice(mentionStart + 1 + mentionQuery.length);
+    const newText = commentText.slice(0, mentionStart) + `@${member.name} ` + after;
+    setCommentText(newText);
+    setShowMentions(false);
+    commentRef.current?.focus();
+  };
+
+  const filteredMentionMembers = showMentions
+    ? members.filter((m) => m.name.toLowerCase().includes(mentionQuery))
+    : [];
 
   const submitComment = async () => {
     if (!commentText.trim()) return;
@@ -288,7 +319,13 @@ const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onC
                       <span className="text-xs font-medium text-gray-700">{c.user?.name ?? 'Unknown'}</span>
                       <span className="text-xs text-gray-400">{fmtDateTime(c.createdAt)}</span>
                     </div>
-                    <p className="text-sm text-gray-600">{c.text}</p>
+                    <p className="text-sm text-gray-600">
+                      {c.text.split(/(@\w[\w ]*)/).map((part, pi) =>
+                        part.startsWith('@')
+                          ? <span key={pi} className="text-brand-600 font-medium">{part}</span>
+                          : part
+                      )}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -299,14 +336,36 @@ const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onC
               <div className="w-7 h-7 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
                 {user?.name?.[0]?.toUpperCase()}
               </div>
-              <div className="flex-1 flex gap-2">
-                <input
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && submitComment()}
-                  placeholder="Add a comment…"
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
+              <div className="flex-1 flex gap-2 relative">
+                <div className="flex-1 relative">
+                  <input
+                    ref={commentRef}
+                    value={commentText}
+                    onChange={handleCommentChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') setShowMentions(false);
+                      if (e.key === 'Enter' && !e.shiftKey && !showMentions) submitComment();
+                    }}
+                    placeholder="Add a comment… (type @name to mention)"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                  {showMentions && filteredMentionMembers.length > 0 && (
+                    <div className="absolute bottom-full left-0 mb-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto">
+                      {filteredMentionMembers.map((m) => (
+                        <button
+                          key={m._id}
+                          onMouseDown={(e) => { e.preventDefault(); insertMention(m); }}
+                          className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700 flex items-center gap-2"
+                        >
+                          <span className="w-5 h-5 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                            {m.name[0]?.toUpperCase()}
+                          </span>
+                          {m.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={submitComment}
                   disabled={submitting || !commentText.trim()}

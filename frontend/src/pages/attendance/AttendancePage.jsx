@@ -4,7 +4,7 @@ import ClockStatus from '../../components/attendance/ClockStatus.jsx';
 import MonthlySummary from '../../components/attendance/MonthlySummary.jsx';
 import { useAuth } from '../../store/AuthContext.jsx';
 import api from '../../services/api.js';
-import { fmtBSDateStr, fmtTime, BS_MONTHS, currentBSMonthYear, bsToADYearMonth, currentBSYear } from '../../utils/nepaliDate.js';
+import { fmtBSDateStr, fmtTime, BS_MONTHS, currentBSMonthYear, currentBSYear, bsMonthToADRange } from '../../utils/nepaliDate.js';
 import { downloadAttendancePDF, downloadTeamAttendancePDF, downloadUserAttendanceFromTeam } from '../../utils/pdfExport.js';
 
 const AttendancePage = () => {
@@ -24,11 +24,12 @@ const AttendancePage = () => {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setData(null);
       setError(null);
       try {
-        const { year, month } = bsToADYearMonth(bsYear, bsMonth);
+        const { startISO, endISO } = bsMonthToADRange(bsYear, bsMonth);
         const endpoint = view === 'team' ? '/attendance/team' : '/attendance/me';
-        const { data: res } = await api.get(endpoint, { params: { year, month } });
+        const { data: res } = await api.get(endpoint, { params: { start: startISO, end: endISO } });
         setData(res.data);
       } catch {
         setError('Failed to load attendance data.');
@@ -96,12 +97,12 @@ const AttendancePage = () => {
             view === 'me' ? (
               <button
                 onClick={() => {
-                  const { year, month } = bsToADYearMonth(bsYear, bsMonth);
+                  const { startISO } = bsMonthToADRange(bsYear, bsMonth);
                   downloadAttendancePDF({
                     records:  data.records ?? [],
                     summary:  data.summary ?? {},
                     userName: user?.name ?? 'User',
-                    month:    `${year}-${String(month).padStart(2, '0')}`,
+                    month:    startISO.slice(0, 7),
                   });
                 }}
                 className="ml-auto flex items-center gap-1.5 text-sm px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
@@ -140,7 +141,7 @@ const AttendancePage = () => {
             <MonthlySummary records={data.records} summary={data.summary} />
           ) : (
             <TeamAttendanceTable
-              records={data}
+              records={Array.isArray(data) ? data : []}
               monthLabel={`${BS_MONTHS[bsMonth]} ${bsYear}`}
             />
           )

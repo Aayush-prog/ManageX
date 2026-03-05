@@ -118,6 +118,20 @@ export const taskAssigned = ({ assigneeName, taskTitle, projectName, priority, d
   `),
 });
 
+export const mentionedInComment = ({ mentionedName, commenterName, taskTitle, projectName, comment }) => ({
+  subject: `${commenterName} mentioned you in "${taskTitle}"`,
+  html: base('You were mentioned', `
+    <p>Hi <strong>${mentionedName}</strong>,</p>
+    <p><strong>${commenterName}</strong> mentioned you in a task comment.</p>
+    <div class="info-box">
+      <div class="info-row"><span class="label">Task</span><span class="value">${taskTitle}</span></div>
+      <div class="info-row"><span class="label">Project</span><span class="value">${projectName}</span></div>
+      <div class="info-row"><span class="label">Comment</span><span class="value">${comment}</span></div>
+    </div>
+    <p>Log in to ManageX to view the task and reply.</p>
+  `),
+});
+
 export const taskOverdue = ({ assigneeName, tasks }) => ({
   subject: `You have ${tasks.length} overdue task${tasks.length > 1 ? 's' : ''}`,
   html: base('Overdue Tasks', `

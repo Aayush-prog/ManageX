@@ -50,7 +50,7 @@ const AdminDashboard = () => {
   const payroll = summary?.payroll ?? {};
 
   return (
-    <DashboardLayout title="Admin Overview">
+    <DashboardLayout title="Admin Overview" hideClockStatus={false} hideSalaryWidget={false}>
       <div className="space-y-6">
         {/* Project KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
