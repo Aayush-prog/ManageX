@@ -3,6 +3,7 @@ import Task    from '../models/Task.js';
 import User    from '../models/User.js';
 import { sendEmail } from '../utils/email.js';
 import * as tpl from '../utils/emailTemplates.js';
+import { notify } from '../utils/notify.js';
 
 const TASK_STATUSES = ['Backlog', 'Todo', 'InProgress', 'Review', 'Done'];
 
@@ -133,18 +134,29 @@ export const createTaskService = async (projectId, data, userId) => {
   const task = await Task.create({ ...data, project: projectId, createdBy: userId });
   const populated = await Task.findById(task._id).populate('assignedTo', 'name email role');
 
-  // Email assigned user (if set and not the creator)
-  if (populated.assignedTo?.email && populated.assignedTo._id.toString() !== userId.toString()) {
+  // Notify + email assigned user (if set and not the creator)
+  if (populated.assignedTo && populated.assignedTo._id.toString() !== userId.toString()) {
     const creator = await User.findById(userId).select('name').lean();
-    const { subject, html } = tpl.taskAssigned({
-      assigneeName: populated.assignedTo.name,
-      taskTitle:    populated.title,
-      projectName:  project.name,
-      priority:     populated.priority,
-      dueDate:      populated.dueDate ? new Date(populated.dueDate).toISOString().slice(0, 10) : null,
-      assignedBy:   creator?.name ?? 'Management',
+    const assignedBy = creator?.name ?? 'Management';
+
+    notify(populated.assignedTo._id, {
+      type:    'task_assigned',
+      title:   'Task Assigned',
+      message: `"${populated.title}" in ${project.name} was assigned to you by ${assignedBy}`,
+      link:    `/projects/${project._id}`,
     });
-    sendEmail({ to: populated.assignedTo.email, subject, html });
+
+    if (populated.assignedTo.email) {
+      const { subject, html } = tpl.taskAssigned({
+        assigneeName: populated.assignedTo.name,
+        taskTitle:    populated.title,
+        projectName:  project.name,
+        priority:     populated.priority,
+        dueDate:      populated.dueDate ? new Date(populated.dueDate).toISOString().slice(0, 10) : null,
+        assignedBy,
+      });
+      sendEmail({ to: populated.assignedTo.email, subject, html });
+    }
   }
 
   return populated;
@@ -170,7 +182,7 @@ export const updateTaskService = async (taskId, updates, updatedByUserId) => {
     throw err;
   }
 
-  // Email newly assigned user if assignedTo changed
+  // Notify + email newly assigned user if assignedTo changed
   const newAssignee = task.assignedTo;
   const oldAssigneeId = before?.assignedTo?.toString();
   const newAssigneeId = newAssignee?._id?.toString();
@@ -178,19 +190,30 @@ export const updateTaskService = async (taskId, updates, updatedByUserId) => {
     filtered.assignedTo &&
     newAssigneeId &&
     newAssigneeId !== oldAssigneeId &&
-    newAssignee.email &&
     newAssigneeId !== updatedByUserId?.toString()
   ) {
     const updater = updatedByUserId ? await User.findById(updatedByUserId).select('name').lean() : null;
-    const { subject, html } = tpl.taskAssigned({
-      assigneeName: newAssignee.name,
-      taskTitle:    task.title,
-      projectName:  task.project?.name ?? 'a project',
-      priority:     task.priority,
-      dueDate:      task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : null,
-      assignedBy:   updater?.name ?? 'Management',
+    const assignedBy = updater?.name ?? 'Management';
+    const projectName = task.project?.name ?? 'a project';
+
+    notify(newAssignee._id, {
+      type:    'task_assigned',
+      title:   'Task Assigned',
+      message: `"${task.title}" in ${projectName} was assigned to you by ${assignedBy}`,
+      link:    `/projects/${task.project?._id}`,
     });
-    sendEmail({ to: newAssignee.email, subject, html });
+
+    if (newAssignee.email) {
+      const { subject, html } = tpl.taskAssigned({
+        assigneeName: newAssignee.name,
+        taskTitle:    task.title,
+        projectName,
+        priority:     task.priority,
+        dueDate:      task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : null,
+        assignedBy,
+      });
+      sendEmail({ to: newAssignee.email, subject, html });
+    }
   }
 
   return task;

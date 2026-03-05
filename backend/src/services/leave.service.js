@@ -2,6 +2,7 @@ import Leave from '../models/Leave.js';
 import User  from '../models/User.js';
 import { sendEmail } from '../utils/email.js';
 import * as tpl from '../utils/emailTemplates.js';
+import { notify } from '../utils/notify.js';
 
 const SICK_QUOTA   = 7; // days per year
 const ANNUAL_QUOTA = 7; // days per year
@@ -157,11 +158,20 @@ export const approveLeaveService = async (leaveId, approverId) => {
   await leave.save();
   await leave.populate([{ path: 'user', select: 'name email role' }, { path: 'approvedBy', select: 'name' }]);
 
+  const approverName = leave.approvedBy?.name ?? 'Management';
+
+  notify(leave.user._id, {
+    type:    'leave_approved',
+    title:   'Leave Approved',
+    message: `Your ${leave.type} leave (${leave.days} day${leave.days > 1 ? 's' : ''}) was approved by ${approverName}`,
+    link:    '/leave',
+  });
+
   if (leave.user?.email) {
     const { subject, html } = tpl.leaveApproved({
       employeeName: leave.user.name, type: leave.type,
       startDate: leave.startDate, endDate: leave.endDate,
-      days: leave.days, approvedBy: leave.approvedBy?.name ?? 'Management',
+      days: leave.days, approvedBy: approverName,
     });
     sendEmail({ to: leave.user.email, subject, html });
   }
@@ -181,11 +191,21 @@ export const rejectLeaveService = async (leaveId, approverId, rejectionReason) =
   await leave.save();
   await leave.populate([{ path: 'user', select: 'name email role' }, { path: 'approvedBy', select: 'name' }]);
 
+  const rejectorName = leave.approvedBy?.name ?? 'Management';
+  const reasonSuffix = leave.rejectionReason ? `: ${leave.rejectionReason}` : '';
+
+  notify(leave.user._id, {
+    type:    'leave_rejected',
+    title:   'Leave Rejected',
+    message: `Your ${leave.type} leave (${leave.days} day${leave.days > 1 ? 's' : ''}) was rejected by ${rejectorName}${reasonSuffix}`,
+    link:    '/leave',
+  });
+
   if (leave.user?.email) {
     const { subject, html } = tpl.leaveRejected({
       employeeName: leave.user.name, type: leave.type,
       startDate: leave.startDate, endDate: leave.endDate,
-      days: leave.days, approvedBy: leave.approvedBy?.name ?? 'Management',
+      days: leave.days, approvedBy: rejectorName,
       reason: leave.rejectionReason,
     });
     sendEmail({ to: leave.user.email, subject, html });
