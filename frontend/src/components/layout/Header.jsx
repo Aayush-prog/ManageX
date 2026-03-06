@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api.js';
 import { fmtBSShort, todayBSFull } from '../../utils/nepaliDate.js';
+import logo from '../../assets/logo-removebg-preview.png';
 
 const DOT_COLOR = {
   task_assigned:  'bg-brand-500',
@@ -76,6 +77,7 @@ const Header = ({ title, onMenuToggle }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
+        <img src={logo} alt="Nepal Marathon" className="hidden sm:block h-8 w-auto object-contain flex-shrink-0" />
         <h2 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">{title}</h2>
       </div>
 
