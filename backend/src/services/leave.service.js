@@ -103,18 +103,17 @@ export const getMyLeavesService = async (userId, year, startFrom, startTo) => {
     .sort({ createdAt: -1 })
     .lean();
 
+  // Compute quota from already-fetched leaves (avoids 2 extra DB queries)
+  const active = leaves.filter((l) => ['Approved', 'Pending'].includes(l.status));
   let sickUsed, annualUsed;
   if (startFrom && startTo) {
-    [sickUsed, annualUsed] = await Promise.all([
-      usedDaysByRange(userId, 'Sick', startFrom, startTo),
-      usedDaysByRange(userId, 'Annual', startFrom, startTo),
-    ]);
+    sickUsed   = active.filter((l) => l.type === 'Sick').reduce((s, l) => s + l.days, 0);
+    annualUsed = active.filter((l) => l.type === 'Annual').reduce((s, l) => s + l.days, 0);
   } else {
-    const currentYear = year ? Number(year) : new Date().getFullYear();
-    [sickUsed, annualUsed] = await Promise.all([
-      usedDays(userId, 'Sick', currentYear),
-      usedDays(userId, 'Annual', currentYear),
-    ]);
+    const qYear = year ? Number(year) : new Date().getFullYear();
+    const activeForYear = active.filter((l) => l.year === qYear);
+    sickUsed   = activeForYear.filter((l) => l.type === 'Sick').reduce((s, l) => s + l.days, 0);
+    annualUsed = activeForYear.filter((l) => l.type === 'Annual').reduce((s, l) => s + l.days, 0);
   }
 
   return {

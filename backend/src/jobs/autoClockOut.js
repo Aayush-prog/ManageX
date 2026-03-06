@@ -27,18 +27,19 @@ export const startAutoClockOutJob = () => {
       const openSessions = await Attendance.find({ date: today, clockOut: null });
       if (!openSessions.length) return;
 
-      const updates = openSessions.map((record) => {
+      const bulkOps = openSessions.map((record) => {
         // Guard: if user clocked in after the scheduled clockout, don't go negative
         const effectiveClockOut = clockOut > record.clockIn ? clockOut : new Date();
-        record.clockOut              = effectiveClockOut;
-        record.totalHours            = parseFloat(
-          ((effectiveClockOut - record.clockIn) / 3_600_000).toFixed(2)
-        );
-        record.clockOutLocationType  = record.locationType; // auto clock-out inherits check-in location
-        return record.save();
+        const totalHours = parseFloat(((effectiveClockOut - record.clockIn) / 3_600_000).toFixed(2));
+        return {
+          updateOne: {
+            filter: { _id: record._id },
+            update: { $set: { clockOut: effectiveClockOut, totalHours, clockOutLocationType: record.locationType } },
+          },
+        };
       });
 
-      await Promise.all(updates);
+      await Attendance.bulkWrite(bulkOps);
       console.log(
         `[autoClockOut] Clocked out ${openSessions.length} session(s) at ${env.CLOCKOUT_HOUR}:${String(env.CLOCKOUT_MINUTE).padStart(2, '0')}`
       );

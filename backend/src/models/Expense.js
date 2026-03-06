@@ -15,8 +15,7 @@ const expenseSchema = new mongoose.Schema({
   attachment: { type: String },
 }, { timestamps: true });
 
-expenseSchema.index({ status: 1 });
-expenseSchema.index({ project: 1 });
-expenseSchema.index({ date: -1 });
+expenseSchema.index({ status: 1, date: -1 });    // summary: { status, date range }
+expenseSchema.index({ project: 1, status: 1 });  // budget agg: { project, status }
 
 export default mongoose.model('Expense', expenseSchema);

@@ -30,22 +30,17 @@ const ManagerDashboard = () => {
       setLoading(true);
       try {
         const now   = new Date();
-        const year  = now.getFullYear();
-        const month = now.getMonth() + 1;
-        const today = `${year}-${String(month).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
         const [usersRes, leavesRes, attRes] = await Promise.allSettled([
           api.get('/users'),
           api.get('/leaves/all', { params: { status: 'Pending' } }),
-          api.get('/attendance/team', { params: { year, month } }),
+          api.get('/attendance/team', { params: { start: today, end: today } }),
         ]);
 
         const users  = usersRes.status  === 'fulfilled' ? (usersRes.value.data.data  ?? []) : [];
         const leaves = leavesRes.status === 'fulfilled' ? (leavesRes.value.data.data ?? []) : [];
-        const att    = attRes.status    === 'fulfilled' ? (attRes.value.data.data    ?? []) : [];
-
-        // Filter attendance to today only (clockOut == null means still active)
-        const todayRecords = att.filter((r) => r.date === today);
+        const todayRecords = attRes.status === 'fulfilled' ? (attRes.value.data.data ?? []) : [];
 
         setStats({ teamCount: users.length, pendingLeaves: leaves.length, activeToday: todayRecords.filter((r) => !r.clockOut).length });
         setPendLeaves(leaves.slice(0, 5)); // show latest 5

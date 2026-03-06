@@ -14,5 +14,6 @@ const billSchema = new mongoose.Schema({
 
 billSchema.index({ status: 1 });
 billSchema.index({ dueDate: 1 });
+billSchema.index({ project: 1, status: 1 });  // budget agg: { project, status }
 
 export default mongoose.model('Bill', billSchema);

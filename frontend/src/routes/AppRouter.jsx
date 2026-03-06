@@ -1,24 +1,26 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 
 import Login from '../pages/auth/Login.jsx';
-import AttendancePage       from '../pages/attendance/AttendancePage.jsx';
-import MyPayrollPage        from '../pages/payroll/MyPayrollPage.jsx';
-import PayrollPage          from '../pages/finance/PayrollPage.jsx';
-import AccountingPage       from '../pages/finance/AccountingPage.jsx';
-import UsersPage            from '../pages/admin/UsersPage.jsx';
-import ProjectsPage         from '../pages/projects/ProjectsPage.jsx';
-import KanbanPage           from '../pages/projects/KanbanPage.jsx';
-import MyTasksPage          from '../pages/projects/MyTasksPage.jsx';
-import LeavePage            from '../pages/leave/LeavePage.jsx';
-import LeaveManagementPage  from '../pages/leave/LeaveManagementPage.jsx';
-import CalendarPage         from '../pages/calendar/CalendarPage.jsx';
-import AdminDashboard       from '../pages/dashboards/AdminDashboard.jsx';
-import ManagerDashboard     from '../pages/dashboards/ManagerDashboard.jsx';
-import TeamPage             from '../pages/manager/TeamPage.jsx';
-import FinanceDashboard     from '../pages/dashboards/FinanceDashboard.jsx';
-import StaffDashboard       from '../pages/dashboards/StaffDashboard.jsx';
+
+const AttendancePage      = lazy(() => import('../pages/attendance/AttendancePage.jsx'));
+const MyPayrollPage       = lazy(() => import('../pages/payroll/MyPayrollPage.jsx'));
+const PayrollPage         = lazy(() => import('../pages/finance/PayrollPage.jsx'));
+const AccountingPage      = lazy(() => import('../pages/finance/AccountingPage.jsx'));
+const UsersPage           = lazy(() => import('../pages/admin/UsersPage.jsx'));
+const ProjectsPage        = lazy(() => import('../pages/projects/ProjectsPage.jsx'));
+const KanbanPage          = lazy(() => import('../pages/projects/KanbanPage.jsx'));
+const MyTasksPage         = lazy(() => import('../pages/projects/MyTasksPage.jsx'));
+const LeavePage           = lazy(() => import('../pages/leave/LeavePage.jsx'));
+const LeaveManagementPage = lazy(() => import('../pages/leave/LeaveManagementPage.jsx'));
+const CalendarPage        = lazy(() => import('../pages/calendar/CalendarPage.jsx'));
+const AdminDashboard      = lazy(() => import('../pages/dashboards/AdminDashboard.jsx'));
+const ManagerDashboard    = lazy(() => import('../pages/dashboards/ManagerDashboard.jsx'));
+const TeamPage            = lazy(() => import('../pages/manager/TeamPage.jsx'));
+const FinanceDashboard    = lazy(() => import('../pages/dashboards/FinanceDashboard.jsx'));
+const StaffDashboard      = lazy(() => import('../pages/dashboards/StaffDashboard.jsx'));
 
 const PERMISSION_DEFAULT_ROUTES = {
   admin:   '/admin/dashboard',
@@ -35,6 +37,7 @@ const RoleRedirect = () => {
 
 const AppRouter = () => (
   <BrowserRouter>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-gray-400">Loading…</div>}>
     <Routes>
       {/* Public */}
       <Route path="/login" element={<Login />} />
@@ -91,6 +94,7 @@ const AppRouter = () => (
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   </BrowserRouter>
 );
 

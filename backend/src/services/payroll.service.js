@@ -26,24 +26,26 @@ export const generatePayrollService = async (month) => {
     throw err;
   }
 
-  const users = await User.find({ isActive: true }).select(
-    'name email role monthlySalary ssfEmployeePercent ssfEmployerPercent'
-  );
+  const [users, existingIds] = await Promise.all([
+    User.find({ isActive: true }).select(
+      'name email role monthlySalary ssfEmployeePercent ssfEmployerPercent'
+    ),
+    Payroll.distinct('user', { month }),
+  ]);
 
-  const created = [];
-  const skipped = [];
+  const existingSet = new Set(existingIds.map((id) => id.toString()));
+  const toCreate = [];
+  const skipped  = [];
 
   for (const user of users) {
-    const exists = await Payroll.exists({ user: user._id, month });
-    if (exists) {
+    if (existingSet.has(user._id.toString())) {
       skipped.push({ id: user._id, name: user.name });
-      continue;
+    } else {
+      toCreate.push({ user: user._id, month, ...calcSSF(user) });
     }
-
-    const record = await Payroll.create({ user: user._id, month, ...calcSSF(user) });
-    created.push(record);
   }
 
+  const created = toCreate.length ? await Payroll.insertMany(toCreate) : [];
   return { created: created.length, skipped: skipped.length, records: created };
 };
 
@@ -94,13 +96,25 @@ export const markAllPaidService = async (month) => {
   if (!pending.length) return { count: 0 };
 
   const now = new Date();
-  for (const payroll of pending) {
-    payroll.status = 'Paid';
-    payroll.paidAt = now;
-    await payroll.save();
 
-    let account = await SSFAccount.findOne({ user: payroll.user._id });
-    if (!account) account = new SSFAccount({ user: payroll.user._id });
+  // Bulk-update all payroll statuses in one query
+  await Payroll.updateMany(
+    { _id: { $in: pending.map((p) => p._id) } },
+    { $set: { status: 'Paid', paidAt: now } }
+  );
+
+  // Fetch all relevant SSFAccounts in one query, then update in memory
+  const userIds  = pending.map((p) => p.user._id);
+  const accounts = await SSFAccount.find({ user: { $in: userIds } });
+  const accountMap = new Map(accounts.map((a) => [a.user.toString(), a]));
+
+  for (const payroll of pending) {
+    const uid = payroll.user._id.toString();
+    let account = accountMap.get(uid);
+    if (!account) {
+      account = new SSFAccount({ user: payroll.user._id });
+      accountMap.set(uid, account);
+    }
     account.totalEmployeeContribution = round2(account.totalEmployeeContribution + payroll.employeeSSF);
     account.totalEmployerContribution = round2(account.totalEmployerContribution + payroll.employerSSF);
     account.totalAccumulated          = round2(account.totalAccumulated          + payroll.totalSSF);
@@ -111,9 +125,9 @@ export const markAllPaidService = async (month) => {
       payrollId:            payroll._id,
       paidAt:               now,
     });
-    await account.save();
   }
 
+  await Promise.all([...accountMap.values()].map((a) => a.save()));
   return { count: pending.length };
 };
 

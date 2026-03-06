@@ -58,7 +58,7 @@ const leaveSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-leaveSchema.index({ user: 1, year: 1, type: 1 });
+leaveSchema.index({ user: 1, year: 1, type: 1, status: 1 });  // usedDays query
 leaveSchema.index({ status: 1, startDate: 1 });
 
 export default mongoose.model('Leave', leaveSchema);
