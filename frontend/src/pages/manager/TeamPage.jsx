@@ -155,6 +155,7 @@ const TeamPage = () => {
           ) : users.length === 0 ? (
             <p className="text-sm text-gray-400 italic px-4 py-6">No team members found.</p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide bg-gray-50">
@@ -190,6 +191,7 @@ const TeamPage = () => {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

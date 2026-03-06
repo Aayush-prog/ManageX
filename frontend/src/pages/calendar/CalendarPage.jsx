@@ -194,15 +194,15 @@ const CalendarPage = () => {
   };
 
   return (
-    <DashboardLayout>
-      <div className="p-6 max-w-5xl mx-auto">
+    <DashboardLayout title="Calendar">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="text-xl font-bold text-gray-800">Nepal Marathon Calendar</h1>
             <p className="text-sm text-gray-400 mt-0.5">Bikram Sambat (BS) Calendar</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
             {canManage && (
               <>
                 <button
@@ -219,15 +219,17 @@ const CalendarPage = () => {
                 </button>
               </>
             )}
-            <button onClick={prevMonth} className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-              ‹ Prev
-            </button>
-            <span className="text-sm font-semibold text-gray-700 w-40 text-center">
-              {BS_MONTHS[bsMonth]} {bsYear}
-            </span>
-            <button onClick={nextMonth} className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-              Next ›
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={prevMonth} className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                ‹ Prev
+              </button>
+              <span className="text-sm font-semibold text-gray-700 text-center min-w-[8rem]">
+                {BS_MONTHS[bsMonth]} {bsYear}
+              </span>
+              <button onClick={nextMonth} className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                Next ›
+              </button>
+            </div>
           </div>
         </div>
 

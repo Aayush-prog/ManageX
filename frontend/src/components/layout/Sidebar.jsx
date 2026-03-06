@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext.jsx';
 import { ChangePasswordModal } from '../../pages/admin/UsersPage.jsx';
+import logo from '../../assets/logo-removebg-preview.png';
 
 const SHARED_ITEMS = [
   { label: 'Calendar',   to: '/calendar' },
@@ -29,7 +30,7 @@ const NAV_ITEMS = {
   staff:   [{ label: 'Dashboard', to: '/staff/dashboard' },   ...SHARED_ITEMS],
 };
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const items = NAV_ITEMS[user?.permissionLevel] || [];
@@ -40,13 +41,42 @@ const Sidebar = () => {
     navigate('/login');
   };
 
+  const handleNavClick = () => {
+    onClose?.();
+  };
+
   return (
     <>
-      <aside className="w-64 min-h-screen bg-gray-900 text-white flex flex-col">
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white flex flex-col
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:relative lg:translate-x-0 lg:z-auto lg:flex-shrink-0
+      `}>
         {/* Brand */}
-        <div className="px-6 py-5 border-b border-gray-700">
-          <h1 className="text-xl font-bold tracking-tight">ManageX</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Nepal Marathon</p>
+        <div className="px-4 py-4 border-b border-gray-700 flex items-center justify-between gap-2">
+          <img
+            src={logo}
+            alt="Nepal Marathon"
+            className="h-12 w-auto object-contain"
+          />
+          <button
+            onClick={onClose}
+            className="lg:hidden flex-shrink-0 text-gray-400 hover:text-white p-1 rounded"
+            aria-label="Close menu"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         {/* User badge */}
@@ -63,6 +93,7 @@ const Sidebar = () => {
             <NavLink
               key={item.to}
               to={item.to}
+              onClick={handleNavClick}
               className={({ isActive }) =>
                 `block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive

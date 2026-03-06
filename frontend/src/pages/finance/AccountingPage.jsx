@@ -358,41 +358,43 @@ const ExpensesTab = ({ projects }) => {
         ) : expenses.length === 0 ? (
           <p className="text-sm text-gray-400 italic px-4 py-6">No expenses found.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Date</th>
-                <th className="text-left px-4 py-3">Title</th>
-                <th className="text-left px-4 py-3">Category</th>
-                <th className="text-left px-4 py-3">Project</th>
-                <th className="text-right px-4 py-3">Amount</th>
-                <th className="text-left px-4 py-3">Added By</th>
-                <th className="text-left px-4 py-3">File</th>
-              </tr>
-            </thead>
-            <tbody>
-              {expenses.map((e) => (
-                <tr key={e._id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                  <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{fmtDate(e.date)}</td>
-                  <td className="px-4 py-3 font-medium text-gray-800">
-                    <div>{e.title}</div>
-                    {e.notes && <div className="text-xs text-gray-400 truncate max-w-xs">{e.notes}</div>}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{e.category}</td>
-                  <td className="px-4 py-3 text-gray-500">{e.project?.name ?? '—'}</td>
-                  <td className="px-4 py-3 text-right font-medium text-gray-800 whitespace-nowrap">{fmtNPR(e.amount)}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{e.createdBy?.name ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <AttachCell
-                      attachment={e.attachment}
-                      uploadUrl={`/accounting/expenses/${e._id}/attachment`}
-                      onAttached={(updated) => setExpenses((prev) => prev.map((x) => x._id === e._id ? updated : x))}
-                    />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
+                  <th className="text-left px-4 py-3">Date</th>
+                  <th className="text-left px-4 py-3">Title</th>
+                  <th className="text-left px-4 py-3">Category</th>
+                  <th className="text-left px-4 py-3">Project</th>
+                  <th className="text-right px-4 py-3">Amount</th>
+                  <th className="text-left px-4 py-3">Added By</th>
+                  <th className="text-left px-4 py-3">File</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {expenses.map((e) => (
+                  <tr key={e._id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{fmtDate(e.date)}</td>
+                    <td className="px-4 py-3 font-medium text-gray-800">
+                      <div>{e.title}</div>
+                      {e.notes && <div className="text-xs text-gray-400 truncate max-w-xs">{e.notes}</div>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{e.category}</td>
+                    <td className="px-4 py-3 text-gray-500">{e.project?.name ?? '—'}</td>
+                    <td className="px-4 py-3 text-right font-medium text-gray-800 whitespace-nowrap">{fmtNPR(e.amount)}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{e.createdBy?.name ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      <AttachCell
+                        attachment={e.attachment}
+                        uploadUrl={`/accounting/expenses/${e._id}/attachment`}
+                        onAttached={(updated) => setExpenses((prev) => prev.map((x) => x._id === e._id ? updated : x))}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -454,10 +456,11 @@ const BillsTab = ({ projects }) => {
         ) : bills.length === 0 ? (
           <p className="text-sm text-gray-400 italic px-4 py-6">No bills found.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Vendor</th>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
+                  <th className="text-left px-4 py-3">Vendor</th>
                 <th className="text-left px-4 py-3">Description</th>
                 <th className="text-left px-4 py-3">Project</th>
                 <th className="text-right px-4 py-3">Amount</th>
@@ -503,7 +506,8 @@ const BillsTab = ({ projects }) => {
                 );
               })}
             </tbody>
-          </table>
+            </table>
+          </div>
         )}
       </div>
 
@@ -556,42 +560,44 @@ const BudgetsTab = ({ projects }) => {
         ) : budgets.length === 0 ? (
           <p className="text-sm text-gray-400 italic px-4 py-6">No budgets set.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Project</th>
-                <th className="text-right px-4 py-3">Allocated</th>
-                <th className="text-right px-4 py-3">Spent</th>
-                <th className="text-right px-4 py-3">Remaining</th>
-                <th className="text-left px-4 py-3 w-32">Usage</th>
-              </tr>
-            </thead>
-            <tbody>
-              {budgets.map((b) => {
-                const pct      = b.allocatedBudget > 0 ? Math.round((b.totalSpent / b.allocatedBudget) * 100) : 0;
-                const barColor = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-400' : 'bg-brand-500';
-                const remaining = b.allocatedBudget - b.totalSpent;
-                return (
-                  <tr key={b._id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                    <td className="px-4 py-3 font-medium text-gray-800">{b.project?.name ?? '—'}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{fmtNPR(b.allocatedBudget)}</td>
-                    <td className="px-4 py-3 text-right text-gray-800 font-medium">{fmtNPR(b.totalSpent)}</td>
-                    <td className={`px-4 py-3 text-right font-medium ${remaining < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      {fmtNPR(remaining)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
+                  <th className="text-left px-4 py-3">Project</th>
+                  <th className="text-right px-4 py-3">Allocated</th>
+                  <th className="text-right px-4 py-3">Spent</th>
+                  <th className="text-right px-4 py-3">Remaining</th>
+                  <th className="text-left px-4 py-3 w-32">Usage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {budgets.map((b) => {
+                  const pct      = b.allocatedBudget > 0 ? Math.round((b.totalSpent / b.allocatedBudget) * 100) : 0;
+                  const barColor = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-400' : 'bg-brand-500';
+                  const remaining = b.allocatedBudget - b.totalSpent;
+                  return (
+                    <tr key={b._id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
+                      <td className="px-4 py-3 font-medium text-gray-800">{b.project?.name ?? '—'}</td>
+                      <td className="px-4 py-3 text-right text-gray-600">{fmtNPR(b.allocatedBudget)}</td>
+                      <td className="px-4 py-3 text-right text-gray-800 font-medium">{fmtNPR(b.totalSpent)}</td>
+                      <td className={`px-4 py-3 text-right font-medium ${remaining < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {fmtNPR(remaining)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                          </div>
+                          <span className="text-xs text-gray-400 w-8 text-right">{pct}%</span>
                         </div>
-                        <span className="text-xs text-gray-400 w-8 text-right">{pct}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -736,43 +742,45 @@ const DepositsTab = ({ projects }) => {
         ) : deposits.length === 0 ? (
           <p className="text-sm text-gray-400 italic px-4 py-6">No deposits found.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
-                <th className="text-left px-4 py-3">Date</th>
-                <th className="text-left px-4 py-3">Title</th>
-                <th className="text-left px-4 py-3">Project</th>
-                <th className="text-left px-4 py-3">Category</th>
-                <th className="text-right px-4 py-3">Amount</th>
-                <th className="text-left px-4 py-3">File</th>
-                <th className="text-left px-4 py-3">Added By</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deposits.map((d) => (
-                <tr key={d._id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                  <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{fmtDate(d.date)}</td>
-                  <td className="px-4 py-3 font-medium text-gray-800">
-                    <div>{d.title}</div>
-                    {d.description && <div className="text-xs text-gray-400 truncate max-w-xs">{d.description}</div>}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{d.project?.name ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">{d.category}</span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-green-700 whitespace-nowrap">{fmtNPR(d.amount)}</td>
-                  <td className="px-4 py-3">
-                    <AttachCell
-                      attachment={d.attachment}
-                      uploadUrl={`/accounting/deposits/${d._id}/attachment`}
-                      onAttached={(updated) => setDeposits((prev) => prev.map((x) => x._id === d._id ? updated : x))}
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{d.createdBy?.name ?? '—'}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
+                  <th className="text-left px-4 py-3">Date</th>
+                  <th className="text-left px-4 py-3">Title</th>
+                  <th className="text-left px-4 py-3">Project</th>
+                  <th className="text-left px-4 py-3">Category</th>
+                  <th className="text-right px-4 py-3">Amount</th>
+                  <th className="text-left px-4 py-3">File</th>
+                  <th className="text-left px-4 py-3">Added By</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {deposits.map((d) => (
+                  <tr key={d._id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{fmtDate(d.date)}</td>
+                    <td className="px-4 py-3 font-medium text-gray-800">
+                      <div>{d.title}</div>
+                      {d.description && <div className="text-xs text-gray-400 truncate max-w-xs">{d.description}</div>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{d.project?.name ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">{d.category}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold text-green-700 whitespace-nowrap">{fmtNPR(d.amount)}</td>
+                    <td className="px-4 py-3">
+                      <AttachCell
+                        attachment={d.attachment}
+                        uploadUrl={`/accounting/deposits/${d._id}/attachment`}
+                        onAttached={(updated) => setDeposits((prev) => prev.map((x) => x._id === d._id ? updated : x))}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{d.createdBy?.name ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -1038,12 +1046,12 @@ const AccountingPage = () => {
     <DashboardLayout title="Accounting" hideClockStatus hideSalaryWidget>
       <div className="space-y-5">
         {/* Tab bar */}
-        <div className="flex gap-1 border-b border-gray-100 pb-0">
+        <div className="flex gap-1 border-b border-gray-100 pb-0 overflow-x-auto">
           {TABS.map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap ${
                 tab === t
                   ? 'bg-white border border-b-white border-gray-100 text-brand-600 -mb-px relative z-10'
                   : 'text-gray-500 hover:text-gray-700'

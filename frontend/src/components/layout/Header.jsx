@@ -21,7 +21,7 @@ const DATE_LABEL = {
   overdue_bill:   'Due',
 };
 
-const Header = ({ title }) => {
+const Header = ({ title, onMenuToggle }) => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [open,          setOpen]          = useState(false);
@@ -65,11 +65,22 @@ const Header = ({ title }) => {
     + notifications.filter((n) => !n.stored).length;
 
   return (
-    <header className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between">
-      <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+    <header className="bg-white border-b border-gray-100 px-4 sm:px-8 py-4 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          onClick={onMenuToggle}
+          className="lg:hidden flex-shrink-0 p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+          aria-label="Toggle menu"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">{title}</h2>
+      </div>
 
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-400">{today}</span>
+      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+        <span className="hidden sm:block text-sm text-gray-400">{today}</span>
 
         {/* Notification bell */}
         <div className="relative" ref={ref}>
@@ -90,7 +101,7 @@ const Header = ({ title }) => {
 
           {/* Dropdown */}
           {open && (
-            <div className="absolute right-0 mt-2 w-84 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden" style={{ width: 340 }}>
+            <div className="absolute right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden" style={{ width: 'min(340px, calc(100vw - 2rem))' }}>
               <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <span className="text-sm font-semibold text-gray-700">Notifications</span>
                 {unreadCount > 0 && (

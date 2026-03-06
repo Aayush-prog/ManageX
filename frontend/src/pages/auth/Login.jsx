@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext.jsx';
 import api from '../../services/api.js';
+import logo from '../../assets/logo-removebg-preview.png';
 
 const PERMISSION_DEFAULT_ROUTES = {
   admin:   '/admin/dashboard',
@@ -50,13 +51,13 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md">
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold text-gray-900">ManageX</h1>
-            <p className="text-sm text-gray-500 mt-1">Nepal Marathon Internal System</p>
+          <div className="mb-8 flex flex-col items-center gap-3">
+            <img src={logo} alt="Nepal Marathon" className="h-20 w-auto object-contain" />
+            <p className="text-sm text-gray-500">Internal Management System</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">

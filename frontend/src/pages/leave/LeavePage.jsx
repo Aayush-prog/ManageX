@@ -211,6 +211,7 @@ const LeavePage = () => {
           ) : leaves.length === 0 ? (
             <p className="text-sm text-gray-400 italic px-4 py-6">No leave requests for {bsYear} BS.</p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
@@ -248,6 +249,7 @@ const LeavePage = () => {
                 ))}
               </tbody>
             </table>
+          </div>
           )}
         </div>
       </div>

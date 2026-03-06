@@ -96,32 +96,34 @@ const ManagerDashboard = () => {
           ) : pendLeaves.length === 0 ? (
             <p className="text-sm text-gray-400 italic px-4 py-6">No pending leave requests.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
-                  <th className="text-left px-4 py-3">Employee</th>
-                  <th className="text-left px-4 py-3">Type</th>
-                  <th className="text-left px-4 py-3">From</th>
-                  <th className="text-left px-4 py-3">To</th>
-                  <th className="text-center px-4 py-3">Days</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendLeaves.map((l) => (
-                  <tr key={l._id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                    <td className="px-4 py-3 font-medium text-gray-800">{l.user?.name ?? '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${l.type === 'Sick' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
-                        {l.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{fmtDate(l.startDate)}</td>
-                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{fmtDate(l.endDate)}</td>
-                    <td className="px-4 py-3 text-center font-medium text-gray-800">{l.days}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
+                    <th className="text-left px-4 py-3">Employee</th>
+                    <th className="text-left px-4 py-3">Type</th>
+                    <th className="text-left px-4 py-3">From</th>
+                    <th className="text-left px-4 py-3">To</th>
+                    <th className="text-center px-4 py-3">Days</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {pendLeaves.map((l) => (
+                    <tr key={l._id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
+                      <td className="px-4 py-3 font-medium text-gray-800">{l.user?.name ?? '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${l.type === 'Sick' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                          {l.type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{fmtDate(l.startDate)}</td>
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{fmtDate(l.endDate)}</td>
+                      <td className="px-4 py-3 text-center font-medium text-gray-800">{l.days}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
@@ -135,6 +137,7 @@ const ManagerDashboard = () => {
           ) : todayAtt.length === 0 ? (
             <p className="text-sm text-gray-400 italic px-4 py-6">No attendance records for today.</p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
@@ -168,6 +171,7 @@ const ManagerDashboard = () => {
                 ))}
               </tbody>
             </table>
+          </div>
           )}
         </div>
 

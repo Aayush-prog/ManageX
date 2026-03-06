@@ -268,8 +268,8 @@ const UsersPage = () => {
     <DashboardLayout title="User Management">
       <div className="space-y-5">
         {/* Stats + actions */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex gap-3">
             <div className="stat-card py-3 px-4">
               <p className="text-xs text-gray-500">Total</p>
               <p className="text-xl font-bold text-gray-900">{users.length}</p>
@@ -283,14 +283,14 @@ const UsersPage = () => {
               <p className="text-xl font-bold text-red-500">{inactive}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <input
               placeholder="Search name / email / role…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
-            <button onClick={() => setShowCreate(true)} className="btn-primary text-sm">+ New User</button>
+            <button onClick={() => setShowCreate(true)} className="btn-primary text-sm whitespace-nowrap">+ New User</button>
           </div>
         </div>
 
@@ -301,6 +301,7 @@ const UsersPage = () => {
           ) : filtered.length === 0 ? (
             <p className="text-sm text-gray-400 italic px-4 py-6">No users found.</p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
@@ -363,6 +364,7 @@ const UsersPage = () => {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>
