@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import TaskCard from '../../components/projects/TaskCard.jsx';
@@ -38,6 +38,7 @@ const STATUS_BADGE = {
 const KanbanPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
 
   const [project,       setProject]       = useState(null);
@@ -47,8 +48,18 @@ const KanbanPage = () => {
   const [detailTask,    setDetailTask]    = useState(null);
   const [showEditProject, setShowEditProject] = useState(false);
   const [editingDeadline, setEditingDeadline] = useState(false);
+  const [deleting,        setDeleting]        = useState(false);
 
   const canManage = ['manager', 'admin'].includes(user?.permissionLevel);
+
+  const handleDeleteProject = async () => {
+    if (!confirm(`Delete project "${project?.name}"? This will permanently remove all tasks, comments, and files. This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/projects/${id}`);
+      navigate('/projects');
+    } catch { setDeleting(false); }
+  };
 
   const handleDeadlineChange = async (iso) => {
     try {
@@ -64,7 +75,18 @@ const KanbanPage = () => {
         // API returns flat object: { ...projectFields, tasksByStatus }
         const { tasksByStatus: tbs, ...proj } = data.data;
         setProject(proj);
-        setTasksByStatus(tbs ?? {});
+        const tsByStatus = tbs ?? {};
+        setTasksByStatus(tsByStatus);
+
+        // Auto-open task if navigated from MyTasksPage
+        const openTaskId = location.state?.openTaskId;
+        if (openTaskId) {
+          const allTasks = Object.values(tsByStatus).flat();
+          const found = allTasks.find((t) => t._id === openTaskId);
+          if (found) setDetailTask(found);
+          // Clear state so back-navigation doesn't re-open
+          window.history.replaceState({}, '');
+        }
       })
       .catch(() => navigate('/projects'))
       .finally(() => setLoading(false));
@@ -193,6 +215,13 @@ const KanbanPage = () => {
                   className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
                 >
                   Edit Project
+                </button>
+                <button
+                  onClick={handleDeleteProject}
+                  disabled={deleting}
+                  className="text-sm px-3 py-1.5 border border-red-200 rounded-lg text-red-500 hover:bg-red-50 disabled:opacity-50"
+                >
+                  {deleting ? 'Deleting…' : 'Delete Project'}
                 </button>
                 <button onClick={() => setCreateStatus('Backlog')} className="btn-primary text-sm">
                   + Add Task

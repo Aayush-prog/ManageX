@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
-import TaskDetailModal from '../../components/projects/TaskDetailModal.jsx';
 import api from '../../services/api.js';
 import { fmtBSDate } from '../../utils/nepaliDate.js';
 
@@ -50,10 +49,9 @@ const TaskRow = ({ task, onClick }) => {
 
 const MyTasksPage = () => {
   const navigate = useNavigate();
-  const [tasks,      setTasks]      = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [detailTask, setDetailTask] = useState(null);
-  const [filter,     setFilter]     = useState('all'); // all | active | overdue
+  const [tasks,   setTasks]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter,  setFilter]  = useState('all'); // all | active | overdue
 
   useEffect(() => {
     api.get('/tasks/my-tasks')
@@ -62,9 +60,10 @@ const MyTasksPage = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleTaskUpdated = (updated) => {
-    setTasks((prev) => prev.map((t) => t._id === updated._id ? updated : t));
-    setDetailTask(updated);
+  const handleTaskClick = (task) => {
+    if (task.project?._id) {
+      navigate(`/projects/${task.project._id}`, { state: { openTaskId: task._id } });
+    }
   };
 
   const filtered = tasks.filter((t) => {
@@ -124,7 +123,7 @@ const MyTasksPage = () => {
             <p className="text-sm text-gray-400 italic px-4 py-6">No tasks found.</p>
           ) : (
             filtered.map((t) => (
-              <TaskRow key={t._id} task={t} onClick={setDetailTask} />
+              <TaskRow key={t._id} task={t} onClick={handleTaskClick} />
             ))
           )}
         </div>
@@ -140,13 +139,6 @@ const MyTasksPage = () => {
         </div>
       </div>
 
-      {detailTask && (
-        <TaskDetailModal
-          task={detailTask}
-          onClose={() => setDetailTask(null)}
-          onUpdated={handleTaskUpdated}
-        />
-      )}
     </DashboardLayout>
   );
 };

@@ -11,28 +11,26 @@ const DOT_COLOR = {
   overdue_task:   'bg-amber-400',
   pending_leave:  'bg-blue-400',
   overdue_bill:   'bg-red-500',
-};
-
-const DATE_LABEL = {
-  task_assigned:  'Assigned',
-  leave_approved: 'Approved',
-  leave_rejected: 'Rejected',
-  overdue_task:   'Due',
-  pending_leave:  'Starts',
-  overdue_bill:   'Due',
+  warning:        'bg-orange-400',
+  mention:        'bg-purple-400',
 };
 
 const Header = ({ title, onMenuToggle }) => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
+  const [unreadCount,   setUnreadCount]   = useState(0);
   const [open,          setOpen]          = useState(false);
+  const [clearing,      setClearing]      = useState(false);
   const ref = useRef(null);
 
   const today = todayBSFull();
 
   const fetchNotifications = useCallback(() => {
     api.get('/notifications')
-      .then(({ data }) => setNotifications(data.data ?? []))
+      .then(({ data }) => {
+        setNotifications(data.data ?? []);
+        setUnreadCount(data.unreadCount ?? 0);
+      })
       .catch(() => {});
   }, []);
 
@@ -46,24 +44,41 @@ const Header = ({ title, onMenuToggle }) => {
   }, []);
 
   const handleOpen = () => {
-    if (!open) {
-      // Mark all stored notifications as read when opening
-      const hasUnread = notifications.some((n) => n.stored);
-      if (hasUnread) {
-        api.patch('/notifications/read-all').then(fetchNotifications).catch(() => {});
-      }
+    if (!open && unreadCount > 0) {
+      // Mark all as read (clears badge) but notifications remain visible
+      api.patch('/notifications/read-all')
+        .then(() => {
+          setUnreadCount(0);
+          setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        })
+        .catch(() => {});
     }
     setOpen((o) => !o);
   };
 
-  const handleNotifClick = (link) => {
-    setOpen(false);
-    navigate(link);
+  const handleDismiss = async (e, id) => {
+    e.stopPropagation();
+    try {
+      await api.delete(`/notifications/${id}`);
+      setNotifications((prev) => prev.filter((n) => n._id?.toString() !== id));
+    } catch { /* ignore */ }
   };
 
-  // Unread count: only stored (unread) + computed alerts
-  const unreadCount = notifications.filter((n) => n.stored).length
-    + notifications.filter((n) => !n.stored).length;
+  const handleClearAll = async () => {
+    setClearing(true);
+    try {
+      await api.delete('/notifications/clear-all');
+      // Remove only stored notifications; keep computed alerts
+      setNotifications((prev) => prev.filter((n) => !n.stored));
+    } catch { /* ignore */ } finally { setClearing(false); }
+  };
+
+  const handleNotifClick = (link) => {
+    setOpen(false);
+    if (link) navigate(link);
+  };
+
+  const storedCount = notifications.filter((n) => n.stored).length;
 
   return (
     <header className="bg-white border-b border-gray-100 px-4 sm:px-8 py-4 flex items-center justify-between gap-3">
@@ -104,48 +119,80 @@ const Header = ({ title, onMenuToggle }) => {
           {/* Dropdown */}
           {open && (
             <div className="absolute right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden" style={{ width: 'min(340px, calc(100vw - 2rem))' }}>
-              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              {/* Header */}
+              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-2">
                 <span className="text-sm font-semibold text-gray-700">Notifications</span>
-                {unreadCount > 0 && (
-                  <span className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-medium">
-                    {unreadCount} alert{unreadCount !== 1 ? 's' : ''}
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {storedCount > 0 && (
+                    <button
+                      onClick={handleClearAll}
+                      disabled={clearing}
+                      className="text-xs text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40"
+                    >
+                      {clearing ? '…' : 'Clear all'}
+                    </button>
+                  )}
+                  {unreadCount > 0 && (
+                    <span className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-medium">
+                      {unreadCount} new
+                    </span>
+                  )}
+                </div>
               </div>
 
+              {/* List — max 5 in dropdown */}
               {notifications.length === 0 ? (
                 <div className="px-4 py-6 text-center text-sm text-gray-400">
-                  No alerts — all clear!
+                  No notifications
                 </div>
               ) : (
-                <div className="max-h-96 overflow-y-auto divide-y divide-gray-50">
-                  {notifications.map((n, i) => (
-                    <button
+                <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
+                  {notifications.slice(0, 5).map((n, i) => (
+                    <div
                       key={n._id ?? `${n.type}-${i}`}
-                      onClick={() => n.link && handleNotifClick(n.link)}
-                      className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${n.stored ? 'bg-blue-50/30' : ''}`}
+                      className={`flex items-start gap-2 px-4 py-3 hover:bg-gray-50 transition-colors ${!n.read ? 'bg-blue-50/40' : ''}`}
                     >
-                      <div className="flex items-start gap-3">
-                        <span className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${DOT_COLOR[n.type] ?? 'bg-gray-400'}`} />
+                      <button
+                        className="flex items-start gap-3 flex-1 min-w-0 text-left"
+                        onClick={() => handleNotifClick(n.link)}
+                      >
+                        <span className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${DOT_COLOR[n.type] ?? 'bg-gray-400'}`} />
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide truncate">
                               {n.title}
                             </p>
-                            {n.stored && (
+                            {!n.read && (
                               <span className="text-[10px] bg-brand-100 text-brand-700 px-1.5 py-0.5 rounded font-medium flex-shrink-0">New</span>
                             )}
                           </div>
                           <p className="text-sm text-gray-700 mt-0.5 leading-snug">{n.message}</p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {DATE_LABEL[n.type] ?? ''} {fmtBSShort(n.date)}
-                          </p>
+                          <p className="text-xs text-gray-400 mt-1">{fmtBSShort(n.date)}</p>
                         </div>
-                      </div>
-                    </button>
+                      </button>
+                      {n.stored && (
+                        <button
+                          onClick={(e) => handleDismiss(e, n._id)}
+                          className="flex-shrink-0 text-gray-300 hover:text-gray-500 mt-1 text-base leading-none"
+                          title="Dismiss"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}
+
+              {/* Footer */}
+              <div className="border-t border-gray-100 px-4 py-2.5">
+                <button
+                  onClick={() => { setOpen(false); navigate('/notifications'); }}
+                  className="w-full text-center text-xs text-brand-600 hover:text-brand-700 font-medium"
+                >
+                  View all notifications →
+                </button>
+              </div>
             </div>
           )}
         </div>

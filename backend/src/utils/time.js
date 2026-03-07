@@ -74,17 +74,44 @@ export const getClockOutTime = (date = new Date()) => {
 };
 
 /**
+ * Returns true if the given date is a Saturday in the configured timezone.
+ */
+export const isLocalDaySaturday = (date = new Date()) => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: env.TIMEZONE,
+    weekday: 'short',
+  }).formatToParts(date);
+  return parts.find((p) => p.type === 'weekday')?.value === 'Sat';
+};
+
+/**
  * Strips IPv4-mapped IPv6 prefix (::ffff:) so IP comparison works
  * whether Express sees IPv4 or IPv6-mapped addresses.
  */
 export const normalizeIP = (ip = '') => ip.replace(/^::ffff:/, '').trim();
 
+/** Convert an IPv4 string to a 32-bit integer. */
+const ipToInt = (ip) =>
+  ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+
 /**
  * Returns true if the normalized IP matches any configured OFFICE_IP entry.
- * OFFICE_IP can be a comma-separated list: "192.168.1.1,10.0.0.1"
+ * OFFICE_IP can be a comma-separated list of exact IPs or CIDR ranges:
+ *   "202.51.80.0/24,10.0.0.1"
  */
 export const isOfficeIP = (ip) => {
   const normalized = normalizeIP(ip);
   const officeList = env.OFFICE_IP.split(',').map((s) => s.trim()).filter(Boolean);
-  return officeList.includes(normalized);
+
+  return officeList.some((entry) => {
+    if (entry.includes('/')) {
+      // CIDR match e.g. 202.51.80.0/24
+      const [network, prefixStr] = entry.split('/');
+      const prefix = parseInt(prefixStr, 10);
+      const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
+      return (ipToInt(normalized) & mask) === (ipToInt(network) & mask);
+    }
+    // Exact match
+    return normalized === entry;
+  });
 };

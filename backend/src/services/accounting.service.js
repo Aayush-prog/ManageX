@@ -57,6 +57,12 @@ export const updateExpenseStatusService = async (expenseId, userId, action) => {
   ]);
 };
 
+export const deleteExpenseService = async (id) => {
+  const doc = await Expense.findByIdAndDelete(id);
+  if (!doc) throw new Error('Expense not found');
+  return doc;
+};
+
 // ── Bills ─────────────────────────────────────────────────────────────────────
 
 export const addBillService = async (data, userId) => {
@@ -79,6 +85,12 @@ export const markBillPaidService = async (billId) => {
   bill.paidAt = new Date();
   await bill.save();
   return bill.populate('createdBy', 'name');
+};
+
+export const deleteBillService = async (id) => {
+  const doc = await Bill.findByIdAndDelete(id);
+  if (!doc) throw new Error('Bill not found');
+  return doc;
 };
 
 // ── Budgets ───────────────────────────────────────────────────────────────────
@@ -162,6 +174,12 @@ export const getDepositsService = async ({ month, startFrom, startTo, projectId 
     .sort({ date: -1 })
     .populate('createdBy', 'name')
     .populate('project',   'name');
+};
+
+export const deleteDepositService = async (id) => {
+  const doc = await ProjectDeposit.findByIdAndDelete(id);
+  if (!doc) throw new Error('Deposit not found');
+  return doc;
 };
 
 export const getProjectFinancialSummaryService = async (projectId) => {

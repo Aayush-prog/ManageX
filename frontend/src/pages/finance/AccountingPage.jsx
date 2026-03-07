@@ -318,6 +318,7 @@ const ExpensesTab = ({ projects }) => {
   const [bsMonth,   setBsMonth]   = useState(currentBSMonthYear);
   const [loading,   setLoading]   = useState(true);
   const [showAdd,   setShowAdd]   = useState(false);
+  const [deleting,  setDeleting]  = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -329,6 +330,15 @@ const ExpensesTab = ({ projects }) => {
   }, [bsMonth]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleDeleteExpense = async (id) => {
+    if (!confirm('Delete this expense? This cannot be undone.')) return;
+    setDeleting(id);
+    try {
+      await api.delete(`/accounting/expenses/${id}`);
+      setExpenses((prev) => prev.filter((e) => e._id !== id));
+    } catch { /* ignore */ } finally { setDeleting(null); }
+  };
 
   const total = expenses.reduce((s, e) => s + e.amount, 0);
 
@@ -369,6 +379,7 @@ const ExpensesTab = ({ projects }) => {
                   <th className="text-right px-4 py-3">Amount</th>
                   <th className="text-left px-4 py-3">Added By</th>
                   <th className="text-left px-4 py-3">File</th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody>
@@ -389,6 +400,15 @@ const ExpensesTab = ({ projects }) => {
                         uploadUrl={`/accounting/expenses/${e._id}/attachment`}
                         onAttached={(updated) => setExpenses((prev) => prev.map((x) => x._id === e._id ? updated : x))}
                       />
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleDeleteExpense(e._id)}
+                        disabled={deleting === e._id}
+                        className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40"
+                      >
+                        {deleting === e._id ? '…' : 'Delete'}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -415,6 +435,7 @@ const BillsTab = ({ projects }) => {
   const [bills,   setBills]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [deleting, setDeleting] = useState(null);
 
   useEffect(() => {
     api.get('/accounting/bills')
@@ -422,6 +443,15 @@ const BillsTab = ({ projects }) => {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const handleDeleteBill = async (id) => {
+    if (!confirm('Delete this bill? This cannot be undone.')) return;
+    setDeleting(id);
+    try {
+      await api.delete(`/accounting/bills/${id}`);
+      setBills((prev) => prev.filter((b) => b._id !== id));
+    } catch { /* ignore */ } finally { setDeleting(null); }
+  };
 
   const handleMarkPaid = async (id) => {
     try {
@@ -468,6 +498,7 @@ const BillsTab = ({ projects }) => {
                 <th className="text-left px-4 py-3">Status</th>
                 <th className="text-left px-4 py-3">File</th>
                 <th className="text-left px-4 py-3">Action</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -501,6 +532,15 @@ const BillsTab = ({ projects }) => {
                       ) : (
                         <span className="text-xs text-gray-400">{fmtDate(b.paidAt)}</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleDeleteBill(b._id)}
+                        disabled={deleting === b._id}
+                        className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40"
+                      >
+                        {deleting === b._id ? '…' : 'Delete'}
+                      </button>
                     </td>
                   </tr>
                 );
@@ -691,6 +731,7 @@ const DepositsTab = ({ projects }) => {
   const [bsMonth,  setBsMonth]  = useState(currentBSMonthYear);
   const [loading,  setLoading]  = useState(true);
   const [showAdd,  setShowAdd]  = useState(false);
+  const [deleting, setDeleting] = useState(null);
   const [selectedProject, setSelectedProject] = useState('');
 
   const load = useCallback(() => {
@@ -705,6 +746,15 @@ const DepositsTab = ({ projects }) => {
   }, [bsMonth, selectedProject]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleDeleteDeposit = async (id) => {
+    if (!confirm('Delete this deposit? This cannot be undone.')) return;
+    setDeleting(id);
+    try {
+      await api.delete(`/accounting/deposits/${id}`);
+      setDeposits((prev) => prev.filter((d) => d._id !== id));
+    } catch { /* ignore */ } finally { setDeleting(null); }
+  };
 
   const totalDeposits = deposits.reduce((s, d) => s + d.amount, 0);
 
@@ -753,6 +803,7 @@ const DepositsTab = ({ projects }) => {
                   <th className="text-right px-4 py-3">Amount</th>
                   <th className="text-left px-4 py-3">File</th>
                   <th className="text-left px-4 py-3">Added By</th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody>
@@ -776,6 +827,15 @@ const DepositsTab = ({ projects }) => {
                       />
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{d.createdBy?.name ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleDeleteDeposit(d._id)}
+                        disabled={deleting === d._id}
+                        className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40"
+                      >
+                        {deleting === d._id ? '…' : 'Delete'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

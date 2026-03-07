@@ -5,6 +5,7 @@ import {
   createProject,
   getProjectById,
   updateProject,
+  deleteProject,
   createTask,
 } from '../controllers/project.controller.js';
 
@@ -17,6 +18,7 @@ router.get('/',                      getProjects);
 router.post('/',                     managerGate, createProject);
 router.get('/:id',                   getProjectById);
 router.patch('/:id',                 managerGate, updateProject);
+router.delete('/:id',               managerGate, deleteProject);
 router.post('/:projectId/tasks',     managerGate, createTask);
 
 export default router;

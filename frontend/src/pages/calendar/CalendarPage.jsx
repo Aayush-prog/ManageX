@@ -7,7 +7,6 @@ import { useAuth } from '../../store/AuthContext.jsx';
 import NepaliDate from 'nepali-date-converter';
 import { BS_MONTHS, bsMonthToADRange, currentBSMonthYear } from '../../utils/nepaliDate.js';
 
-// Convert a BS date string "YYYY-MM-DD" to an AD ISO date string
 const bsISOtoADISO = (bsDateStr) => {
   const [y, m, d] = bsDateStr.split('-').map(Number);
   if (!y || !m || !d) return null;
@@ -20,9 +19,17 @@ const bsISOtoADISO = (bsDateStr) => {
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const TYPE_STYLES = {
-  road:  { dot: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-700',   label: 'Road' },
-  trail: { dot: 'bg-green-500',  badge: 'bg-green-100 text-green-700', label: 'Trail' },
-  event: { dot: 'bg-orange-500', badge: 'bg-orange-100 text-orange-700', label: 'Event' },
+  road:    { dot: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-700',    label: 'Road' },
+  trail:   { dot: 'bg-green-500',  badge: 'bg-green-100 text-green-700',  label: 'Trail' },
+  event:   { dot: 'bg-orange-500', badge: 'bg-orange-100 text-orange-700', label: 'Event' },
+  holiday: { dot: 'bg-red-400',    badge: 'bg-red-100 text-red-600',      label: 'Holiday' },
+};
+
+const CONTACT_STATUS_STYLES = {
+  pending:   { badge: 'bg-yellow-100 text-yellow-700', label: 'Not Contacted' },
+  contacted: { badge: 'bg-blue-100 text-blue-700',     label: 'Contacted' },
+  rejected:  { badge: 'bg-red-100 text-red-700',       label: 'Rejected' },
+  allowed:   { badge: 'bg-green-100 text-green-700',   label: 'Allowed' },
 };
 
 const localISODate = (d) =>
@@ -37,14 +44,10 @@ const getDaysInBSMonth = (bsYear, bsMonth) => {
 const getBSDay1Weekday = (bsYear, bsMonth) =>
   new NepaliDate(bsYear, bsMonth, 1).toJsDate().getDay();
 
-const adISOToBSDay = (iso) => {
-  const nd = new NepaliDate(new Date(iso));
-  return nd.getDate();
-};
-
 const CalendarPage = () => {
   const { user } = useAuth();
   const canManage = ['manager', 'admin'].includes(user?.permissionLevel);
+  const canUpdateStatus = ['finance', 'manager', 'admin'].includes(user?.permissionLevel);
 
   const today = new NepaliDate(new Date());
   const todayBSYear  = today.getYear();
@@ -59,7 +62,7 @@ const CalendarPage = () => {
   // Modal state
   const [showAdd,   setShowAdd]   = useState(false);
   const [addDate,   setAddDate]   = useState('');
-  const [addForm,   setAddForm]   = useState({ title: '', description: '', type: 'event' });
+  const [addForm,   setAddForm]   = useState({ title: '', description: '', type: 'event', organizerContactName: '', organizerContactPosition: '' });
   const [addError,  setAddError]  = useState('');
   const [addSaving, setAddSaving] = useState(false);
 
@@ -71,6 +74,9 @@ const CalendarPage = () => {
 
   // Selected day events popover
   const [selectedDay, setSelectedDay] = useState(null);
+
+  // Contact status update
+  const [statusUpdating, setStatusUpdating] = useState(null); // eventId being updated
 
   const loadEvents = async () => {
     setLoading(true);
@@ -88,14 +94,18 @@ const CalendarPage = () => {
   const daysInMonth = getDaysInBSMonth(bsYear, bsMonth);
   const startWeekday = getBSDay1Weekday(bsYear, bsMonth);
 
-  // Map AD ISO date string -> array of events for that BS day
+  // Map BS day -> array of events for that day
   const eventsByBSDay = {};
+  // Map BS day -> boolean (is declared holiday)
+  const holidaysByBSDay = {};
+
   for (const ev of events) {
     const nd = new NepaliDate(new Date(ev.date));
     if (nd.getYear() === bsYear && nd.getMonth() === bsMonth) {
       const day = nd.getDate();
       if (!eventsByBSDay[day]) eventsByBSDay[day] = [];
       eventsByBSDay[day].push(ev);
+      if (ev.type === 'holiday') holidaysByBSDay[day] = true;
     }
   }
 
@@ -110,7 +120,7 @@ const CalendarPage = () => {
 
   const openAddModal = (dateISO) => {
     setAddDate(dateISO);
-    setAddForm({ title: '', description: '', type: 'event' });
+    setAddForm({ title: '', description: '', type: 'event', organizerContactName: '', organizerContactPosition: '' });
     setAddError('');
     setShowAdd(true);
   };
@@ -138,42 +148,57 @@ const CalendarPage = () => {
     } catch { /* ignore */ }
   };
 
+  const updateContactStatus = async (eventId, contactStatus) => {
+    setStatusUpdating(eventId);
+    try {
+      const { data } = await api.patch(`/calendar/${eventId}/contact-status`, { contactStatus });
+      setEvents(evs => evs.map(e => e._id === eventId ? { ...e, contactStatus: data.data.contactStatus } : e));
+      // Update selectedDay popup if open
+      setSelectedDay(sd =>
+        sd ? { ...sd, events: sd.events.map(e => e._id === eventId ? { ...e, contactStatus } : e) } : sd
+      );
+    } catch { /* ignore */ } finally {
+      setStatusUpdating(null);
+    }
+  };
+
   const submitBulk = async (e) => {
     e.preventDefault();
     if (!bulkFile) return;
     setBulkSaving(true); setBulkResult(null);
     try {
-      // Parse XLSX on the frontend
       const buffer = await bulkFile.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: 'array' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
-      const VALID_TYPES = ['road', 'trail', 'event'];
-      const events = [];
+      const VALID_TYPES = ['road', 'trail', 'event', 'holiday'];
+      const eventsToUpload = [];
       const parseErrors = [];
 
       rows.forEach((row, i) => {
-        const title       = String(row.title ?? row.Title ?? '').trim();
-        const bsDate      = String(row.date  ?? row.Date  ?? '').trim();
-        const type        = String(row.type  ?? row.Type  ?? 'event').trim().toLowerCase();
-        const description = String(row.description ?? row.Description ?? '').trim();
+        const title           = String(row.title ?? row.Title ?? '').trim();
+        const bsDate          = String(row.date  ?? row.Date  ?? '').trim();
+        const type            = String(row.type  ?? row.Type  ?? 'event').trim().toLowerCase();
+        const description     = String(row.description ?? row.Description ?? '').trim();
+        const organizerContactName     = String(row.organizerContactName     ?? row['Organizer Name']     ?? '').trim();
+        const organizerContactPosition = String(row.organizerContactPosition ?? row['Organizer Position'] ?? '').trim();
 
         if (!title) { parseErrors.push(`Row ${i + 2}: missing title`); return; }
-        if (!VALID_TYPES.includes(type)) { parseErrors.push(`Row ${i + 2}: invalid type "${type}" — use road/trail/event`); return; }
+        if (!VALID_TYPES.includes(type)) { parseErrors.push(`Row ${i + 2}: invalid type "${type}" — use road/trail/event/holiday`); return; }
 
         const adDate = bsISOtoADISO(bsDate);
         if (!adDate) { parseErrors.push(`Row ${i + 2}: invalid BS date "${bsDate}" — use YYYY-MM-DD (BS)`); return; }
 
-        events.push({ title, date: adDate, type, description });
+        eventsToUpload.push({ title, date: adDate, type, description, organizerContactName, organizerContactPosition });
       });
 
-      if (events.length === 0) {
+      if (eventsToUpload.length === 0) {
         setBulkResult({ success: false, message: 'No valid rows found', errors: parseErrors });
         return;
       }
 
-      const { data } = await api.post('/calendar/bulk', events);
+      const { data } = await api.post('/calendar/bulk', eventsToUpload);
       setBulkResult({ ...data, errors: [...parseErrors, ...(data.errors ?? [])] });
       loadEvents();
     } catch (err) {
@@ -192,6 +217,10 @@ const CalendarPage = () => {
     const adDate = new NepaliDate(bsYear, bsMonth, day).toJsDate();
     return localISODate(adDate);
   };
+
+  // Saturday is column index 6 (Sun=0 … Sat=6)
+  const isSaturday = (day) => (startWeekday + day - 1) % 7 === 6;
+  const isDayHoliday = (day) => isSaturday(day) || !!holidaysByBSDay[day];
 
   return (
     <DashboardLayout title="Calendar">
@@ -234,13 +263,17 @@ const CalendarPage = () => {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center gap-4 mb-4 flex-wrap">
           {Object.entries(TYPE_STYLES).map(([type, s]) => (
             <div key={type} className="flex items-center gap-1.5 text-xs text-gray-500">
               <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`} />
               {s.label}
             </div>
           ))}
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-200" />
+            Saturday (off)
+          </div>
         </div>
 
         {/* Calendar grid */}
@@ -262,14 +295,15 @@ const CalendarPage = () => {
               {cells.map((day, idx) => {
                 if (!day) return <div key={`blank-${idx}`} className="border-r border-b border-gray-50 h-24" />;
                 const dayEvents = eventsByBSDay[day] ?? [];
-                const isSat = (startWeekday + day - 1) % 7 === 6;
+                const sat = isSaturday(day);
+                const holiday = isDayHoliday(day);
                 const dateISO = getBSDayADIso(day);
 
                 return (
                   <div
                     key={day}
                     className={`border-r border-b border-gray-50 h-24 p-1.5 flex flex-col cursor-pointer hover:bg-gray-50 transition-colors ${
-                      isToday(day) ? 'bg-brand-50' : ''
+                      isToday(day) ? 'bg-brand-50' : holiday ? 'bg-red-50' : ''
                     }`}
                     onClick={() => {
                       if (dayEvents.length > 0) setSelectedDay({ day, events: dayEvents, dateISO });
@@ -278,7 +312,7 @@ const CalendarPage = () => {
                   >
                     <div className="flex items-center justify-between">
                       <span className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full ${
-                        isToday(day) ? 'bg-brand-600 text-white' : isSat ? 'text-red-400' : 'text-gray-700'
+                        isToday(day) ? 'bg-brand-600 text-white' : sat ? 'text-red-400' : holiday ? 'text-red-500' : 'text-gray-700'
                       }`}>
                         {day}
                       </span>
@@ -292,6 +326,9 @@ const CalendarPage = () => {
                         </button>
                       )}
                     </div>
+                    {sat && dayEvents.length === 0 && (
+                      <p className="text-xs text-red-300 mt-1">Holiday</p>
+                    )}
                     <div className="flex flex-wrap gap-0.5 mt-1 flex-1 overflow-hidden">
                       {dayEvents.slice(0, 3).map((ev, i) => (
                         <span key={i} className={`w-2 h-2 rounded-full ${TYPE_STYLES[ev.type]?.dot ?? 'bg-gray-400'}`} title={ev.title} />
@@ -316,6 +353,7 @@ const CalendarPage = () => {
               {events.map((ev) => {
                 const nd = new NepaliDate(new Date(ev.date));
                 const s = TYPE_STYLES[ev.type] ?? TYPE_STYLES.event;
+                const cs = ev.type !== 'holiday' ? CONTACT_STATUS_STYLES[ev.contactStatus] : null;
                 return (
                   <div key={ev._id} className="flex items-start gap-3 bg-white rounded-xl border border-gray-100 px-4 py-3">
                     <span className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${s.dot}`} />
@@ -323,20 +361,43 @@ const CalendarPage = () => {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-medium text-gray-800">{ev.title}</p>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.badge}`}>{s.label}</span>
+                        {cs && (
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cs.badge}`}>{cs.label}</span>
+                        )}
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">
                         {BS_MONTHS[nd.getMonth()]} {nd.getDate()}, {nd.getYear()}
                         {ev.description && ` — ${ev.description}`}
+                        {ev.organizerContactName && (
+                          <span className="ml-1 text-gray-500">
+                            · {ev.organizerContactName}{ev.organizerContactPosition ? ` (${ev.organizerContactPosition})` : ''}
+                          </span>
+                        )}
                       </p>
                     </div>
-                    {canManage && (
-                      <button
-                        onClick={() => deleteEvent(ev._id)}
-                        className="text-xs text-red-400 hover:text-red-600 flex-shrink-0"
-                      >
-                        Delete
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {canUpdateStatus && ev.type !== 'holiday' && (
+                        <select
+                          value={ev.contactStatus}
+                          onChange={(e) => updateContactStatus(ev._id, e.target.value)}
+                          disabled={statusUpdating === ev._id}
+                          className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                        >
+                          <option value="pending">Not Contacted</option>
+                          <option value="contacted">Contacted</option>
+                          <option value="rejected">Rejected</option>
+                          <option value="allowed">Allowed</option>
+                        </select>
+                      )}
+                      {canManage && (
+                        <button
+                          onClick={() => deleteEvent(ev._id)}
+                          className="text-xs text-red-400 hover:text-red-600"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -348,7 +409,7 @@ const CalendarPage = () => {
       {/* Day events popover */}
       {selectedDay && (
         <div className="fixed inset-0 bg-black/30 z-40 flex items-center justify-center p-4" onClick={() => setSelectedDay(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-800">
                 {BS_MONTHS[bsMonth]} {selectedDay.day}, {bsYear}
@@ -365,22 +426,49 @@ const CalendarPage = () => {
                 <button onClick={() => setSelectedDay(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {selectedDay.events.map((ev) => {
                 const s = TYPE_STYLES[ev.type] ?? TYPE_STYLES.event;
+                const cs = ev.type !== 'holiday' ? CONTACT_STATUS_STYLES[ev.contactStatus] : null;
                 return (
-                  <div key={ev._id} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50">
-                    <span className={`w-2.5 h-2.5 rounded-full mt-0.5 flex-shrink-0 ${s.dot}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-gray-800">{ev.title}</p>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${s.badge}`}>{s.label}</span>
+                  <div key={ev._id} className="p-3 rounded-lg bg-gray-50 space-y-2">
+                    <div className="flex items-start gap-3">
+                      <span className={`w-2.5 h-2.5 rounded-full mt-0.5 flex-shrink-0 ${s.dot}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium text-gray-800">{ev.title}</p>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${s.badge}`}>{s.label}</span>
+                          {cs && <span className={`text-xs px-2 py-0.5 rounded-full ${cs.badge}`}>{cs.label}</span>}
+                        </div>
+                        {ev.description && <p className="text-xs text-gray-500 mt-0.5">{ev.description}</p>}
+                        {ev.organizerContactName && (
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            <span className="font-medium">Organizer:</span> {ev.organizerContactName}
+                            {ev.organizerContactPosition && <span className="text-gray-400"> · {ev.organizerContactPosition}</span>}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-0.5">Added by {ev.createdBy?.name}</p>
                       </div>
-                      {ev.description && <p className="text-xs text-gray-500 mt-0.5">{ev.description}</p>}
-                      <p className="text-xs text-gray-400 mt-0.5">Added by {ev.createdBy?.name}</p>
+                      {canManage && (
+                        <button onClick={() => deleteEvent(ev._id)} className="text-xs text-red-400 hover:text-red-600 flex-shrink-0">Del</button>
+                      )}
                     </div>
-                    {canManage && (
-                      <button onClick={() => deleteEvent(ev._id)} className="text-xs text-red-400 hover:text-red-600">Del</button>
+                    {/* Contact status updater */}
+                    {canUpdateStatus && ev.type !== 'holiday' && (
+                      <div className="flex items-center gap-2 pl-5">
+                        <span className="text-xs text-gray-400">Contact status:</span>
+                        <select
+                          value={ev.contactStatus}
+                          onChange={(e) => updateContactStatus(ev._id, e.target.value)}
+                          disabled={statusUpdating === ev._id}
+                          className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                        >
+                          <option value="pending">Not Contacted</option>
+                          <option value="contacted">Contacted</option>
+                          <option value="rejected">Rejected</option>
+                          <option value="allowed">Allowed</option>
+                        </select>
+                      </div>
                     )}
                   </div>
                 );
@@ -423,6 +511,7 @@ const CalendarPage = () => {
                   <option value="road">Road</option>
                   <option value="trail">Trail</option>
                   <option value="event">Event</option>
+                  <option value="holiday">Holiday</option>
                 </select>
               </div>
               <div>
@@ -435,6 +524,28 @@ const CalendarPage = () => {
                   placeholder="Optional description…"
                 />
               </div>
+              {addForm.type !== 'holiday' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-400 uppercase tracking-wide mb-0.5">Organizer Name</label>
+                    <input
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      value={addForm.organizerContactName}
+                      onChange={(e) => setAddForm(f => ({ ...f, organizerContactName: e.target.value }))}
+                      placeholder="Name (optional)"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 uppercase tracking-wide mb-0.5">Position</label>
+                    <input
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      value={addForm.organizerContactPosition}
+                      onChange={(e) => setAddForm(f => ({ ...f, organizerContactPosition: e.target.value }))}
+                      placeholder="Role / title (optional)"
+                    />
+                  </div>
+                </div>
+              )}
               {addError && <p className="text-sm text-red-600">{addError}</p>}
               <div className="flex justify-end gap-2 pt-1">
                 <button type="button" onClick={() => setShowAdd(false)} className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
@@ -448,6 +559,7 @@ const CalendarPage = () => {
           </div>
         </div>
       )}
+
       {/* Bulk Upload modal */}
       {showBulk && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
@@ -458,7 +570,7 @@ const CalendarPage = () => {
             </div>
             <form onSubmit={submitBulk} className="space-y-4">
               <p className="text-xs text-gray-500">
-                Upload an <strong>.xlsx</strong> file with columns: <code className="bg-gray-100 px-1 rounded">title</code>, <code className="bg-gray-100 px-1 rounded">date</code> <span className="text-gray-400">(BS — YYYY-MM-DD e.g. 2081-11-14)</span>, <code className="bg-gray-100 px-1 rounded">type</code> (road/trail/event), <code className="bg-gray-100 px-1 rounded">description</code> (optional).
+                Upload an <strong>.xlsx</strong> file with columns: <code className="bg-gray-100 px-1 rounded">title</code>, <code className="bg-gray-100 px-1 rounded">date</code> <span className="text-gray-400">(BS — YYYY-MM-DD)</span>, <code className="bg-gray-100 px-1 rounded">type</code> (road/trail/event/holiday), <code className="bg-gray-100 px-1 rounded">description</code>, <code className="bg-gray-100 px-1 rounded">organizerContact</code> (all optional except title, date, type).
               </p>
               <input
                 type="file"

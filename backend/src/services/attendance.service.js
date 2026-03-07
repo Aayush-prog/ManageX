@@ -1,5 +1,6 @@
 import Attendance from '../models/Attendance.js';
-import { getLocalDateString, isLateClockIn, isOfficeIP, isOutsideCheckInWindow } from '../utils/time.js';
+import CalendarEvent from '../models/CalendarEvent.js';
+import { getLocalDateString, isLateClockIn, isOfficeIP, isOutsideCheckInWindow, isLocalDaySaturday } from '../utils/time.js';
 
 // ── Clock-in ─────────────────────────────────────────────────────────────────
 
@@ -15,7 +16,21 @@ export const clockInService = async (userId, requestIP) => {
     return { record: null, skipped: true };
   }
 
+  // Saturday is always a holiday
+  if (isLocalDaySaturday(now)) {
+    return { record: null, skipped: true, reason: 'holiday' };
+  }
+
   const date = getLocalDateString(now);
+
+  // Check if today is a declared holiday
+  const holiday = await CalendarEvent.findOne({
+    type: 'holiday',
+    date: { $gte: new Date(date + 'T00:00:00'), $lte: new Date(date + 'T23:59:59') },
+  }).lean();
+  if (holiday) {
+    return { record: null, skipped: true, reason: 'holiday' };
+  }
 
   // Guard: already clocked in today
   const existing = await Attendance.findOne({ user: userId, date });

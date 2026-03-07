@@ -1,9 +1,17 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import Project from '../models/Project.js';
 import Task    from '../models/Task.js';
 import User    from '../models/User.js';
+import ProjectBudget  from '../models/ProjectBudget.js';
+import ProjectDeposit from '../models/ProjectDeposit.js';
 import { sendEmail } from '../utils/email.js';
 import * as tpl from '../utils/emailTemplates.js';
 import { notify } from '../utils/notify.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const UPLOADS_DIR = path.resolve(__dirname, '../../../uploads');
 
 const TASK_STATUSES = ['Backlog', 'Todo', 'InProgress', 'Review', 'Done'];
 
@@ -273,6 +281,38 @@ export const addCommentService = async (taskId, userId, text) => {
 
 export const getMyTasksService = async (userId) =>
   Task.find({ assignedTo: userId })
-    .populate('project', 'name status')
+    .populate('project',       'name status _id')
+    .populate('assignedTo',    'name email role')
+    .populate('comments.user', 'name')
     .sort({ dueDate: 1 })
     .lean();
+
+export const deleteProjectService = async (projectId) => {
+  const project = await Project.findById(projectId).lean();
+  if (!project) {
+    const err = new Error('Project not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // Collect all attachment file paths before deleting tasks
+  const tasks = await Task.find({ project: projectId }).lean();
+  const filesToDelete = tasks.flatMap((t) =>
+    (t.attachments ?? []).map((a) => {
+      // a.url is like "/uploads/filename.ext"
+      const filename = a.url.replace(/^\/uploads\//, '');
+      return path.join(UPLOADS_DIR, filename);
+    })
+  );
+
+  // Delete actual files
+  for (const filePath of filesToDelete) {
+    try { fs.unlinkSync(filePath); } catch { /* file may not exist, ignore */ }
+  }
+
+  // Delete all related data
+  await Task.deleteMany({ project: projectId });
+  await ProjectBudget.deleteMany({ project: projectId }).catch(() => {});
+  await ProjectDeposit.deleteMany({ project: projectId }).catch(() => {});
+  await Project.findByIdAndDelete(projectId);
+};

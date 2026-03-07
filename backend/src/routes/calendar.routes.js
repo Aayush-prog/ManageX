@@ -5,6 +5,8 @@ import CalendarEvent from '../models/CalendarEvent.js';
 const router = Router();
 router.use(authenticate);
 
+const VALID_TYPES = ['road', 'trail', 'event', 'holiday'];
+
 // GET /api/calendar?start=YYYY-MM-DD&end=YYYY-MM-DD
 router.get('/', async (req, res, next) => {
   try {
@@ -26,15 +28,20 @@ router.get('/', async (req, res, next) => {
 // POST /api/calendar — manager/admin only
 router.post('/', allowRoles('manager', 'admin'), async (req, res, next) => {
   try {
-    const { title, description, date, type } = req.body;
+    const { title, description, date, type, organizerContactName, organizerContactPosition } = req.body;
     if (!title || !date || !type) {
       return res.status(400).json({ success: false, message: 'title, date and type are required' });
+    }
+    if (!VALID_TYPES.includes(type)) {
+      return res.status(400).json({ success: false, message: `type must be one of: ${VALID_TYPES.join(', ')}` });
     }
     const event = await CalendarEvent.create({
       title,
       description,
       date: new Date(date + 'T00:00:00'),
       type,
+      organizerContactName:     organizerContactName     || '',
+      organizerContactPosition: organizerContactPosition || '',
       createdBy: req.user.id,
     });
     await event.populate('createdBy', 'name');
@@ -43,7 +50,7 @@ router.post('/', allowRoles('manager', 'admin'), async (req, res, next) => {
 });
 
 // POST /api/calendar/bulk — accepts pre-parsed JSON array from frontend
-// Each item: { title, date (AD ISO), type, description }
+// Each item: { title, date (AD ISO), type, description, organizerContact? }
 router.post('/bulk', allowRoles('manager', 'admin'), async (req, res, next) => {
   try {
     const rows = req.body;
@@ -51,16 +58,15 @@ router.post('/bulk', allowRoles('manager', 'admin'), async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Expected a non-empty array of events' });
     }
 
-    const VALID_TYPES = ['road', 'trail', 'event'];
     const docs = [];
     const errors = [];
 
     rows.forEach((row, i) => {
-      const { title, date, type, description = '' } = row;
+      const { title, date, type, description = '', organizerContactName = '', organizerContactPosition = '' } = row;
       if (!title) { errors.push(`Row ${i + 1}: missing title`); return; }
       if (!date || isNaN(Date.parse(date))) { errors.push(`Row ${i + 1}: invalid date`); return; }
       if (!VALID_TYPES.includes(type)) { errors.push(`Row ${i + 1}: invalid type "${type}"`); return; }
-      docs.push({ title, description, date: new Date(date + 'T00:00:00'), type, createdBy: req.user.id });
+      docs.push({ title, description, date: new Date(date + 'T00:00:00'), type, organizerContactName, organizerContactPosition, createdBy: req.user.id });
     });
 
     if (docs.length === 0) {
@@ -74,6 +80,24 @@ router.post('/bulk', allowRoles('manager', 'admin'), async (req, res, next) => {
       skipped: rows.length - inserted.length,
       errors,
     });
+  } catch (err) { next(err); }
+});
+
+// PATCH /api/calendar/:id/contact-status — finance/manager/admin can update
+router.patch('/:id/contact-status', allowRoles('finance', 'manager', 'admin'), async (req, res, next) => {
+  try {
+    const { contactStatus } = req.body;
+    const VALID_STATUSES = ['pending', 'contacted', 'rejected', 'allowed'];
+    if (!VALID_STATUSES.includes(contactStatus)) {
+      return res.status(400).json({ success: false, message: `contactStatus must be one of: ${VALID_STATUSES.join(', ')}` });
+    }
+    const event = await CalendarEvent.findByIdAndUpdate(
+      req.params.id,
+      { contactStatus },
+      { new: true }
+    ).populate('createdBy', 'name');
+    if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+    return res.json({ success: true, data: event });
   } catch (err) { next(err); }
 });
 

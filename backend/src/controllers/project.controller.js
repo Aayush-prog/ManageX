@@ -3,6 +3,7 @@ import {
   createProjectService,
   getProjectByIdService,
   updateProjectService,
+  deleteProjectService,
   createTaskService,
   updateTaskService,
   addCommentService,
@@ -36,6 +37,13 @@ export const updateProject = async (req, res, next) => {
   try {
     const project = await updateProjectService(req.params.id, req.body);
     return res.json({ success: true, data: project });
+  } catch (err) { next(err); }
+};
+
+export const deleteProject = async (req, res, next) => {
+  try {
+    await deleteProjectService(req.params.id);
+    return res.json({ success: true, message: 'Project and all related data deleted' });
   } catch (err) { next(err); }
 };
 

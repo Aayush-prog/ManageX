@@ -9,22 +9,24 @@ const router = Router();
 router.use(authenticate);
 
 // GET /api/notifications
-// Returns stored (unread) notifications + computed alerts merged and sorted
+// Returns ALL stored notifications (read or unread) + computed alerts, merged and sorted.
+// Stored notifications are never auto-cleared — user must dismiss them explicitly.
 router.get('/', async (req, res, next) => {
   try {
     const { id: userId, permissionLevel } = req.user;
     const now = new Date();
     const notifications = [];
 
-    // ── Stored notifications (task assigned, leave approved/rejected) ──────────
-    const stored = await Notification.find({ recipient: userId, read: false })
+    // ── All stored notifications (not just unread) ──────────────────────────
+    const stored = await Notification.find({ recipient: userId })
       .sort({ createdAt: -1 })
       .lean();
 
     for (const n of stored) {
       notifications.push({
-        _id:     n._id,      // needed for mark-read
+        _id:     n._id,
         stored:  true,
+        read:    n.read,
         type:    n.type,
         title:   n.title,
         message: n.message,
@@ -33,7 +35,7 @@ router.get('/', async (req, res, next) => {
       });
     }
 
-    // ── Computed: overdue tasks assigned to this user ──────────────────────────
+    // ── Computed: overdue tasks assigned to this user ───────────────────────
     const overdueTasks = await Task.find({
       assignedTo: userId,
       status:     { $ne: 'Done' },
@@ -46,6 +48,7 @@ router.get('/', async (req, res, next) => {
     for (const t of overdueTasks) {
       notifications.push({
         stored:  false,
+        read:    false,
         type:    'overdue_task',
         title:   'Overdue Task',
         message: `"${t.title}" in ${t.project?.name ?? 'a project'} is overdue`,
@@ -54,7 +57,7 @@ router.get('/', async (req, res, next) => {
       });
     }
 
-    // ── Computed: pending leave requests — manager and admin only ──────────────
+    // ── Computed: pending leave requests — manager and admin only ───────────
     if (['manager', 'admin'].includes(permissionLevel)) {
       const pendingLeaves = await Leave.find({ status: 'Pending' })
         .populate('user', 'name')
@@ -64,6 +67,7 @@ router.get('/', async (req, res, next) => {
       for (const l of pendingLeaves) {
         notifications.push({
           stored:  false,
+          read:    false,
           type:    'pending_leave',
           title:   'Leave Request',
           message: `${l.user?.name ?? 'An employee'} requested ${l.days} day(s) of ${l.type} leave`,
@@ -73,7 +77,7 @@ router.get('/', async (req, res, next) => {
       }
     }
 
-    // ── Computed: overdue bills — finance and admin only ───────────────────────
+    // ── Computed: overdue bills — finance and admin only ────────────────────
     if (['finance', 'admin'].includes(permissionLevel)) {
       const overdueBills = await Bill.find({
         status:  'Unpaid',
@@ -85,6 +89,7 @@ router.get('/', async (req, res, next) => {
       for (const b of overdueBills) {
         notifications.push({
           stored:  false,
+          read:    false,
           type:    'overdue_bill',
           title:   'Overdue Bill',
           message: `Bill from "${b.vendorName}" (Rs. ${b.amount.toLocaleString('en-IN')}) is overdue`,
@@ -94,21 +99,39 @@ router.get('/', async (req, res, next) => {
       }
     }
 
-    // Sort: stored first (most recent), then computed by date
+    // Sort: unread stored first, then read stored, then computed by date
     notifications.sort((a, b) => {
       if (a.stored !== b.stored) return a.stored ? -1 : 1;
+      if (a.stored && b.stored && a.read !== b.read) return a.read ? 1 : -1;
       return new Date(b.date) - new Date(a.date);
     });
 
-    return res.json({ success: true, data: notifications, count: notifications.length });
+    const unreadCount = notifications.filter((n) => !n.read).length;
+    return res.json({ success: true, data: notifications, unreadCount });
   } catch (err) { next(err); }
 });
 
-// PATCH /api/notifications/read-all
-// Mark all stored notifications for this user as read
+// PATCH /api/notifications/read-all — mark all stored as read (clears badge)
 router.patch('/read-all', async (req, res, next) => {
   try {
     await Notification.updateMany({ recipient: req.user.id, read: false }, { read: true });
+    return res.json({ success: true });
+  } catch (err) { next(err); }
+});
+
+// DELETE /api/notifications/clear-all — delete all stored notifications for this user
+router.delete('/clear-all', async (req, res, next) => {
+  try {
+    await Notification.deleteMany({ recipient: req.user.id });
+    return res.json({ success: true });
+  } catch (err) { next(err); }
+});
+
+// DELETE /api/notifications/:id — dismiss a single stored notification
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const n = await Notification.findOneAndDelete({ _id: req.params.id, recipient: req.user.id });
+    if (!n) return res.status(404).json({ success: false, message: 'Notification not found' });
     return res.json({ success: true });
   } catch (err) { next(err); }
 });
