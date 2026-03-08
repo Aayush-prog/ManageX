@@ -4,6 +4,7 @@ import {
   getMyAttendanceService,
   getTeamAttendanceService,
   getAllAttendanceService,
+  editAttendanceService,
 } from '../services/attendance.service.js';
 
 const currentYearMonth = () => {
@@ -60,6 +61,14 @@ export const getTeamAttendance = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+};
+
+// PATCH /api/attendance/:id   (Manager / Admin)
+export const editAttendance = async (req, res, next) => {
+  try {
+    const record = await editAttendanceService(req.params.id, req.body);
+    return res.json({ success: true, data: record });
+  } catch (err) { next(err); }
 };
 
 // GET /api/attendance/all?start=YYYY-MM-DD&end=YYYY-MM-DD   (Admin)

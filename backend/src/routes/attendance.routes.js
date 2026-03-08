@@ -6,6 +6,7 @@ import {
   getMyAttendance,
   getTeamAttendance,
   getAllAttendance,
+  editAttendance,
 } from '../controllers/attendance.controller.js';
 
 const router = Router();
@@ -13,10 +14,11 @@ const router = Router();
 // All attendance routes require authentication
 router.use(authenticate);
 
-router.get ('/me/today',  getToday);
-router.post('/clock-out', clockOut);
-router.get ('/me',        getMyAttendance);
-router.get ('/team',      allowRoles('manager', 'admin'), getTeamAttendance);
-router.get ('/all',       allowRoles('admin'),             getAllAttendance);
+router.get  ('/me/today',  getToday);
+router.post ('/clock-out', clockOut);
+router.get  ('/me',        getMyAttendance);
+router.get  ('/team',      allowRoles('manager', 'admin'), getTeamAttendance);
+router.get  ('/all',       allowRoles('admin'),            getAllAttendance);
+router.patch('/:id',       allowRoles('manager', 'admin'), editAttendance);
 
 export default router;

@@ -115,6 +115,35 @@ export const clockOutService = async (userId, requestIP) => {
   return record;
 };
 
+// ── Manager edit ─────────────────────────────────────────────────────────────
+
+export const editAttendanceService = async (attendanceId, fields) => {
+  const record = await Attendance.findById(attendanceId);
+  if (!record) {
+    const err = new Error('Attendance record not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const { clockIn, clockOut, locationType, clockOutLocationType, isLate } = fields;
+
+  if (clockIn              !== undefined) record.clockIn              = new Date(clockIn);
+  if (locationType         !== undefined) record.locationType         = locationType;
+  if (clockOutLocationType !== undefined) record.clockOutLocationType = clockOutLocationType;
+  if (isLate               !== undefined) record.isLate               = isLate;
+  if (clockOut             !== undefined) record.clockOut             = clockOut ? new Date(clockOut) : null;
+
+  // Recalculate totalHours whenever both times are present
+  if (record.clockIn && record.clockOut) {
+    record.totalHours = parseFloat(((record.clockOut - record.clockIn) / 3_600_000).toFixed(2));
+  } else {
+    record.totalHours = null;
+  }
+
+  await record.save();
+  return record;
+};
+
 // ── Today's status ────────────────────────────────────────────────────────────
 
 export const getTodayService = async (userId) => {
