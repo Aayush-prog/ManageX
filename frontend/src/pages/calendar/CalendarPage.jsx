@@ -62,7 +62,7 @@ const CalendarPage = () => {
   // Modal state
   const [showAdd,   setShowAdd]   = useState(false);
   const [addDate,   setAddDate]   = useState('');
-  const [addForm,   setAddForm]   = useState({ title: '', description: '', type: 'event', organizerContactName: '', organizerContactPosition: '' });
+  const [addForm,   setAddForm]   = useState({ title: '', description: '', type: 'event', organizerContactName: '', organizerContactPosition: '', organizerPhone: '' });
   const [addError,  setAddError]  = useState('');
   const [addSaving, setAddSaving] = useState(false);
 
@@ -120,7 +120,7 @@ const CalendarPage = () => {
 
   const openAddModal = (dateISO) => {
     setAddDate(dateISO);
-    setAddForm({ title: '', description: '', type: 'event', organizerContactName: '', organizerContactPosition: '' });
+    setAddForm({ title: '', description: '', type: 'event', organizerContactName: '', organizerContactPosition: '', organizerPhone: '' });
     setAddError('');
     setShowAdd(true);
   };
@@ -162,6 +162,58 @@ const CalendarPage = () => {
     }
   };
 
+  const downloadTemplate = () => {
+    const sampleRows = [
+      {
+        title: 'Kathmandu Marathon',
+        date: '2082-01-15',
+        type: 'road',
+        description: 'Annual road race through Kathmandu',
+        organizerContactName: 'Ram Sharma',
+        organizerContactPosition: 'Event Director',
+        organizerPhone: '9841000000',
+      },
+      {
+        title: 'Shivapuri Trail Run',
+        date: '2082-02-05',
+        type: 'trail',
+        description: 'Mountain trail run',
+        organizerContactName: '',
+        organizerContactPosition: '',
+        organizerPhone: '',
+      },
+      {
+        title: 'Dashain Holiday',
+        date: '2082-06-12',
+        type: 'holiday',
+        description: 'Dashain festival public holiday',
+        organizerContactName: '',
+        organizerContactPosition: '',
+        organizerPhone: '',
+      },
+      {
+        title: 'Fundraiser Event',
+        date: '2082-03-20',
+        type: 'event',
+        description: 'Charity fundraiser',
+        organizerContactName: 'Sita Rai',
+        organizerContactPosition: 'Coordinator',
+        organizerPhone: '9851000000',
+      },
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(sampleRows, {
+      header: ['title', 'date', 'type', 'description', 'organizerContactName', 'organizerContactPosition', 'organizerPhone'],
+    });
+
+    // Column widths
+    ws['!cols'] = [{ wch: 30 }, { wch: 14 }, { wch: 10 }, { wch: 35 }, { wch: 22 }, { wch: 22 }, { wch: 16 }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Events');
+    XLSX.writeFile(wb, 'calendar_events_template.xlsx');
+  };
+
   const submitBulk = async (e) => {
     e.preventDefault();
     if (!bulkFile) return;
@@ -183,6 +235,7 @@ const CalendarPage = () => {
         const description     = String(row.description ?? row.Description ?? '').trim();
         const organizerContactName     = String(row.organizerContactName     ?? row['Organizer Name']     ?? '').trim();
         const organizerContactPosition = String(row.organizerContactPosition ?? row['Organizer Position'] ?? '').trim();
+        const organizerPhone           = String(row.organizerPhone           ?? row['Organizer Phone']   ?? '').trim();
 
         if (!title) { parseErrors.push(`Row ${i + 2}: missing title`); return; }
         if (!VALID_TYPES.includes(type)) { parseErrors.push(`Row ${i + 2}: invalid type "${type}" — use road/trail/event/holiday`); return; }
@@ -190,7 +243,7 @@ const CalendarPage = () => {
         const adDate = bsISOtoADISO(bsDate);
         if (!adDate) { parseErrors.push(`Row ${i + 2}: invalid BS date "${bsDate}" — use YYYY-MM-DD (BS)`); return; }
 
-        eventsToUpload.push({ title, date: adDate, type, description, organizerContactName, organizerContactPosition });
+        eventsToUpload.push({ title, date: adDate, type, description, organizerContactName, organizerContactPosition, organizerPhone });
       });
 
       if (eventsToUpload.length === 0) {
@@ -371,6 +424,7 @@ const CalendarPage = () => {
                         {ev.organizerContactName && (
                           <span className="ml-1 text-gray-500">
                             · {ev.organizerContactName}{ev.organizerContactPosition ? ` (${ev.organizerContactPosition})` : ''}
+                            {ev.organizerPhone && <a href={`tel:${ev.organizerPhone}`} className="ml-1 text-brand-600 hover:underline">{ev.organizerPhone}</a>}
                           </span>
                         )}
                       </p>
@@ -445,6 +499,7 @@ const CalendarPage = () => {
                           <p className="text-xs text-gray-500 mt-0.5">
                             <span className="font-medium">Organizer:</span> {ev.organizerContactName}
                             {ev.organizerContactPosition && <span className="text-gray-400"> · {ev.organizerContactPosition}</span>}
+                            {ev.organizerPhone && <a href={`tel:${ev.organizerPhone}`} className="ml-1 text-brand-600 hover:underline">{ev.organizerPhone}</a>}
                           </p>
                         )}
                         <p className="text-xs text-gray-400 mt-0.5">Added by {ev.createdBy?.name}</p>
@@ -525,23 +580,35 @@ const CalendarPage = () => {
                 />
               </div>
               {addForm.type !== 'holiday' && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-gray-400 uppercase tracking-wide mb-0.5">Organizer Name</label>
-                    <input
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                      value={addForm.organizerContactName}
-                      onChange={(e) => setAddForm(f => ({ ...f, organizerContactName: e.target.value }))}
-                      placeholder="Name (optional)"
-                    />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 uppercase tracking-wide mb-0.5">Organizer Name</label>
+                      <input
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        value={addForm.organizerContactName}
+                        onChange={(e) => setAddForm(f => ({ ...f, organizerContactName: e.target.value }))}
+                        placeholder="Name (optional)"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 uppercase tracking-wide mb-0.5">Position</label>
+                      <input
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        value={addForm.organizerContactPosition}
+                        onChange={(e) => setAddForm(f => ({ ...f, organizerContactPosition: e.target.value }))}
+                        placeholder="Role / title (optional)"
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-400 uppercase tracking-wide mb-0.5">Position</label>
+                    <label className="block text-xs text-gray-400 uppercase tracking-wide mb-0.5">Phone</label>
                     <input
+                      type="tel"
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                      value={addForm.organizerContactPosition}
-                      onChange={(e) => setAddForm(f => ({ ...f, organizerContactPosition: e.target.value }))}
-                      placeholder="Role / title (optional)"
+                      value={addForm.organizerPhone}
+                      onChange={(e) => setAddForm(f => ({ ...f, organizerPhone: e.target.value }))}
+                      placeholder="98XXXXXXXX (optional)"
                     />
                   </div>
                 </div>
@@ -569,9 +636,25 @@ const CalendarPage = () => {
               <button onClick={() => setShowBulk(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
             </div>
             <form onSubmit={submitBulk} className="space-y-4">
-              <p className="text-xs text-gray-500">
-                Upload an <strong>.xlsx</strong> file with columns: <code className="bg-gray-100 px-1 rounded">title</code>, <code className="bg-gray-100 px-1 rounded">date</code> <span className="text-gray-400">(BS — YYYY-MM-DD)</span>, <code className="bg-gray-100 px-1 rounded">type</code> (road/trail/event/holiday), <code className="bg-gray-100 px-1 rounded">description</code>, <code className="bg-gray-100 px-1 rounded">organizerContact</code> (all optional except title, date, type).
-              </p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-xs text-gray-500">
+                  Upload an <strong>.xlsx</strong> file with columns:&nbsp;
+                  <code className="bg-gray-100 px-1 rounded">title</code>,&nbsp;
+                  <code className="bg-gray-100 px-1 rounded">date</code>&nbsp;<span className="text-gray-400">(BS — YYYY-MM-DD)</span>,&nbsp;
+                  <code className="bg-gray-100 px-1 rounded">type</code>&nbsp;<span className="text-gray-400">(road / trail / event / holiday)</span>,&nbsp;
+                  <code className="bg-gray-100 px-1 rounded">description</code>,&nbsp;
+                  <code className="bg-gray-100 px-1 rounded">organizerContactName</code>,&nbsp;
+                  <code className="bg-gray-100 px-1 rounded">organizerContactPosition</code>,&nbsp;
+                  <code className="bg-gray-100 px-1 rounded">organizerPhone</code>.
+                </p>
+                <button
+                  type="button"
+                  onClick={downloadTemplate}
+                  className="flex-shrink-0 text-xs px-2.5 py-1.5 border border-brand-300 text-brand-600 rounded-lg hover:bg-brand-50 whitespace-nowrap"
+                >
+                  ↓ Template
+                </button>
+              </div>
               <input
                 type="file"
                 accept=".xlsx,.xls"

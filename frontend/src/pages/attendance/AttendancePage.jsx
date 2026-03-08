@@ -11,11 +11,12 @@ const AttendancePage = () => {
   const { user } = useAuth();
   const initBS = currentBSMonthYear();
 
-  const [bsYear,  setBsYear]  = useState(initBS.year);
-  const [bsMonth, setBsMonth] = useState(initBS.month); // 0-indexed
-  const [data,    setData]    = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState(null);
+  const [bsYear,    setBsYear]    = useState(initBS.year);
+  const [bsMonth,   setBsMonth]   = useState(initBS.month); // 0-indexed
+  const [data,      setData]      = useState(null);
+  const [loading,   setLoading]   = useState(false);
+  const [error,     setError]     = useState(null);
+  const [dateRange, setDateRange] = useState({ startISO: '', endISO: '' });
 
   // Manager/Admin can view team data
   const canViewTeam = ['manager', 'admin'].includes(user?.permissionLevel);
@@ -28,6 +29,7 @@ const AttendancePage = () => {
       setError(null);
       try {
         const { startISO, endISO } = bsMonthToADRange(bsYear, bsMonth);
+        setDateRange({ startISO, endISO });
         const endpoint = view === 'team' ? '/attendance/team' : '/attendance/me';
         const { data: res } = await api.get(endpoint, { params: { start: startISO, end: endISO } });
         setData(res.data);
@@ -138,7 +140,7 @@ const AttendancePage = () => {
 
         {!loading && !error && data && (
           view === 'me' ? (
-            <MonthlySummary records={data.records} summary={data.summary} />
+            <MonthlySummary records={data.records} summary={data.summary} startISO={dateRange.startISO} endISO={dateRange.endISO} />
           ) : (
             <TeamAttendanceTable
               records={Array.isArray(data) ? data : []}
@@ -191,9 +193,10 @@ const TeamAttendanceTable = ({ records = [], monthLabel = '' }) => {
   // Stats for selected user
   const userStats = useMemo(() => {
     if (!selectedUser) return null;
-    const late  = filtered.filter((r) => r.isLate).length;
-    const hours = filtered.reduce((s, r) => s + (r.totalHours ?? 0), 0).toFixed(1);
-    return { days: filtered.length, late, hours };
+    const late        = filtered.filter((r) => r.isLate).length;
+    const hours       = filtered.reduce((s, r) => s + (r.totalHours ?? 0), 0).toFixed(1);
+    const lateAbsents = Math.floor(late / 3);
+    return { days: filtered.length, late, hours, lateAbsents };
   }, [filtered, selectedUser]);
 
   const selectedUserObj = users.find((u) => (u?._id ?? u?.name) === selectedUser);
@@ -228,6 +231,7 @@ const TeamAttendanceTable = ({ records = [], monthLabel = '' }) => {
             <span className="font-medium text-gray-700 capitalize">{selectedUserObj?.role}</span>
             <span>{userStats.days} day{userStats.days !== 1 ? 's' : ''}</span>
             {userStats.late > 0 && <span className="text-red-500">{userStats.late} late</span>}
+            {userStats.lateAbsents > 0 && <span className="text-orange-500">{userStats.lateAbsents} absent from lates</span>}
             <span>{userStats.hours}h total</span>
           </div>
         )}

@@ -28,7 +28,7 @@ router.get('/', async (req, res, next) => {
 // POST /api/calendar — manager/admin only
 router.post('/', allowRoles('manager', 'admin'), async (req, res, next) => {
   try {
-    const { title, description, date, type, organizerContactName, organizerContactPosition } = req.body;
+    const { title, description, date, type, organizerContactName, organizerContactPosition, organizerPhone } = req.body;
     if (!title || !date || !type) {
       return res.status(400).json({ success: false, message: 'title, date and type are required' });
     }
@@ -42,6 +42,7 @@ router.post('/', allowRoles('manager', 'admin'), async (req, res, next) => {
       type,
       organizerContactName:     organizerContactName     || '',
       organizerContactPosition: organizerContactPosition || '',
+      organizerPhone:           organizerPhone           || '',
       createdBy: req.user.id,
     });
     await event.populate('createdBy', 'name');
@@ -62,11 +63,11 @@ router.post('/bulk', allowRoles('manager', 'admin'), async (req, res, next) => {
     const errors = [];
 
     rows.forEach((row, i) => {
-      const { title, date, type, description = '', organizerContactName = '', organizerContactPosition = '' } = row;
+      const { title, date, type, description = '', organizerContactName = '', organizerContactPosition = '', organizerPhone = '' } = row;
       if (!title) { errors.push(`Row ${i + 1}: missing title`); return; }
       if (!date || isNaN(Date.parse(date))) { errors.push(`Row ${i + 1}: invalid date`); return; }
       if (!VALID_TYPES.includes(type)) { errors.push(`Row ${i + 1}: invalid type "${type}"`); return; }
-      docs.push({ title, description, date: new Date(date + 'T00:00:00'), type, organizerContactName, organizerContactPosition, createdBy: req.user.id });
+      docs.push({ title, description, date: new Date(date + 'T00:00:00'), type, organizerContactName, organizerContactPosition, organizerPhone, createdBy: req.user.id });
     });
 
     if (docs.length === 0) {

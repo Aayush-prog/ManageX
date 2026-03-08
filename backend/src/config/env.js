@@ -17,7 +17,8 @@ const env = {
   // Attendance
   OFFICE_IP: process.env.OFFICE_IP || "127.0.0.1",
   TIMEZONE: process.env.TIMEZONE || "Asia/Kathmandu",
-  LATE_HOUR: parseInt(process.env.LATE_HOUR, 10) || 12, // late after 12:00 PM
+  LATE_HOUR: parseInt(process.env.LATE_HOUR, 10) || 12,     // late after HH:MM
+  LATE_MINUTE: parseInt(process.env.LATE_MINUTE, 10) || 15, // default 12:15
   CLOCKOUT_HOUR: parseInt(process.env.CLOCKOUT_HOUR, 10) || 17, // 5:00 PM
   CLOCKOUT_MINUTE: parseInt(process.env.CLOCKOUT_MINUTE, 10) || 0,
   CLOCKOUT_GRACE_MINUTES:

@@ -30,7 +30,7 @@ export const getLocalTimeParts = (date = new Date()) => {
  */
 export const isLateClockIn = (clockIn = new Date()) => {
   const { hour, minute } = getLocalTimeParts(clockIn);
-  return hour * 60 + minute > env.LATE_HOUR * 60;
+  return hour * 60 + minute > env.LATE_HOUR * 60 + env.LATE_MINUTE;
 };
 
 /**

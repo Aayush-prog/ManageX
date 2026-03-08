@@ -1,6 +1,8 @@
 import Attendance from '../models/Attendance.js';
 import CalendarEvent from '../models/CalendarEvent.js';
+import User from '../models/User.js';
 import { getLocalDateString, isLateClockIn, isOfficeIP, isOutsideCheckInWindow, isLocalDaySaturday } from '../utils/time.js';
+import { notify } from '../utils/notify.js';
 
 // ── Clock-in ─────────────────────────────────────────────────────────────────
 
@@ -49,6 +51,50 @@ export const clockInService = async (userId, requestIP) => {
     isLate,
   });
 
+  if (isLate) {
+    // Notify the user they clocked in late
+    notify(userId, {
+      type: 'late',
+      title: 'Late Clock-in',
+      message: `You clocked in late today. Please try to arrive on time.`,
+      link: '/attendance',
+    });
+
+    // Count lates this month to check for 3-lates = 1 absent rule
+    const monthStart = date.slice(0, 7) + '-01';
+    const monthEnd   = date.slice(0, 7) + '-31';
+    const monthlyLateCount = await Attendance.countDocuments({
+      user: userId,
+      date: { $gte: monthStart, $lte: monthEnd },
+      isLate: true,
+    });
+
+    if (monthlyLateCount % 3 === 0) {
+      const absentsFromLates = monthlyLateCount / 3;
+
+      // Notify the employee
+      notify(userId, {
+        type: 'late_absent',
+        title: 'Attendance Warning — Absence Recorded',
+        message: `You have been late ${monthlyLateCount} time(s) this month. Every 3 lates count as 1 absent — ${absentsFromLates} absence(s) are now recorded against your attendance.`,
+        link: '/attendance',
+      });
+
+      // Notify all admins and managers
+      const targetUser = await User.findById(userId).select('name').lean();
+      const managers   = await User.find({ permissionLevel: { $in: ['admin', 'manager'] }, isActive: true }).select('_id').lean();
+      managers.forEach((mgr) => {
+        if (String(mgr._id) === String(userId)) return; // skip if the late user is also a manager
+        notify(mgr._id, {
+          type: 'late_absent',
+          title: 'Employee Absence from Lates',
+          message: `${targetUser?.name} has been late ${monthlyLateCount} time(s) this month — ${absentsFromLates} absence(s) recorded.`,
+          link: '/attendance',
+        });
+      });
+    }
+  }
+
   return { record, skipped: false };
 };
 
@@ -85,6 +131,7 @@ const buildSummary = (records) => {
   return {
     daysPresent,
     daysLate,
+    lateAbsents: Math.floor(daysLate / 3), // every 3 lates = 1 absent
     totalHours: parseFloat(totalHours.toFixed(2)),
     avgHoursPerDay: daysPresent
       ? parseFloat((totalHours / daysPresent).toFixed(2))

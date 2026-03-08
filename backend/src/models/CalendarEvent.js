@@ -9,6 +9,7 @@ const calendarEventSchema = new mongoose.Schema(
     createdBy:        { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     organizerContactName:     { type: String, trim: true, default: '' },
     organizerContactPosition: { type: String, trim: true, default: '' },
+    organizerPhone:           { type: String, trim: true, default: '' },
     contactStatus:    { type: String, enum: ['pending', 'contacted', 'rejected', 'allowed'], default: 'pending' },
     contactNotifiedAt: { type: Date, default: null },
   },

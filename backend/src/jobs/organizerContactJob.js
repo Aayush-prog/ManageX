@@ -62,6 +62,7 @@ const checkOrganizerContacts = async () => {
                 <tr style="background:#f9fafb"><td style="padding:8px;color:#6b7280;font-size:13px">Type</td><td style="padding:8px;text-transform:capitalize">${event.type}</td></tr>
                 <tr><td style="padding:8px;color:#6b7280;font-size:13px">Date</td><td style="padding:8px">${dateStr} (${daysUntil} day${daysUntil === 1 ? '' : 's'} away)</td></tr>
                 ${event.organizerContactName ? `<tr style="background:#f9fafb"><td style="padding:8px;color:#6b7280;font-size:13px">Organizer</td><td style="padding:8px">${event.organizerContactName}${event.organizerContactPosition ? ` <span style="color:#9ca3af">(${event.organizerContactPosition})</span>` : ''}</td></tr>` : ''}
+                ${event.organizerPhone ? `<tr><td style="padding:8px;color:#6b7280;font-size:13px">Phone</td><td style="padding:8px"><a href="tel:${event.organizerPhone}" style="color:#2563eb">${event.organizerPhone}</a></td></tr>` : ''}
               </table>
               <p>Please update the contact status in the <a href="/calendar" style="color:#2563eb">Calendar</a> once the organizer has been reached.</p>
             </div>
