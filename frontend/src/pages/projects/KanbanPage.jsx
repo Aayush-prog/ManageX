@@ -187,12 +187,12 @@ const KanbanPage = () => {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm text-gray-500">{doneTasks}/{totalTasks} done</span>
             <span className="text-sm font-medium text-brand-600">{pct}%</span>
             {/* Deadline */}
-            <div className="flex items-center gap-1.5 text-sm text-gray-500 border border-gray-200 rounded-lg px-2 py-1">
-              <span className="text-xs text-gray-400">Deadline:</span>
+            <div className="flex items-center gap-1.5 text-sm text-gray-500 border border-gray-200 rounded-lg px-2 py-1 min-w-0">
+              <span className="text-xs text-gray-400 flex-shrink-0">Deadline:</span>
               {canManage && editingDeadline ? (
                 <BSDatePicker
                   value={project?.endDate ? new Date(project.endDate).toISOString().slice(0, 10) : ''}
@@ -202,7 +202,7 @@ const KanbanPage = () => {
               ) : (
                 <button
                   onClick={() => canManage && setEditingDeadline(true)}
-                  className={`text-sm ${canManage ? 'hover:text-brand-600 cursor-pointer' : 'cursor-default'} ${project?.endDate ? 'text-gray-700' : 'text-gray-400'}`}
+                  className={`text-sm truncate min-w-0 ${canManage ? 'hover:text-brand-600 cursor-pointer' : 'cursor-default'} ${project?.endDate ? 'text-gray-700' : 'text-gray-400'}`}
                 >
                   {project?.endDate ? fmtBSDate(project.endDate) : 'Not set'}
                 </button>
