@@ -11,7 +11,9 @@ const env = {
   REFRESH_TOKEN_SECRET:
     process.env.REFRESH_TOKEN_SECRET || "changeme_refresh_in_production",
   REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN || "7d",
-  CORS_ORIGIN: process.env.CORS_ORIGIN || "http://localhost:5173",
+  CORS_ORIGIN: process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+    : ['http://localhost:5173'],
   // Attendance
   OFFICE_IP: process.env.OFFICE_IP || "127.0.0.1",
   TIMEZONE: process.env.TIMEZONE || "Asia/Kathmandu",
