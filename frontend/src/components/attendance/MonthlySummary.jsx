@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { fmtBSDateStr, fmtTime } from '../../utils/nepaliDate.js';
+import api from '../../services/api.js';
 
 const fmtDate = fmtBSDateStr;
 
@@ -31,17 +32,25 @@ const getWorkingDays = (startISO, endISO) => {
 };
 
 const MonthlySummary = ({ records = [], summary = {}, startISO = '', endISO = '' }) => {
+  const [trackFrom, setTrackFrom] = useState('');
+
+  useEffect(() => {
+    api.get('/attendance/config').then(({ data }) => setTrackFrom(data.trackFrom)).catch(() => {});
+  }, []);
+
   // Merge present records + absent days, sorted newest first
   const allRows = useMemo(() => {
     const presentDates = new Set(records.map((r) => r.date));
-    const workingDays  = getWorkingDays(startISO, endISO);
+    // Cap startISO at trackFrom so days before go-live don't show as absent
+    const effectiveStart = trackFrom && trackFrom > startISO ? trackFrom : startISO;
+    const workingDays  = getWorkingDays(effectiveStart, endISO);
     const absentRows   = workingDays
       .filter((d) => !presentDates.has(d))
       .map((d) => ({ date: d, _absent: true }));
 
     return [...records.map((r) => ({ ...r, _absent: false })), ...absentRows]
       .sort((a, b) => b.date.localeCompare(a.date));
-  }, [records, startISO, endISO]);
+  }, [records, startISO, endISO, trackFrom]);
 
   const absentCount = allRows.filter((r) => r._absent).length;
 
