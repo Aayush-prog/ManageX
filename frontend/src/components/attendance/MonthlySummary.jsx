@@ -92,7 +92,7 @@ const MonthlySummary = ({ records = [], summary = {}, startISO = '', endISO = ''
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                {['Date', 'Clock In', 'Clock Out', 'Hours', 'Location', 'Status'].map((h) => (
+                {['Date', 'Clock In', 'Clock Out', 'Hours', 'Status'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     {h}
                   </th>
@@ -104,7 +104,6 @@ const MonthlySummary = ({ records = [], summary = {}, startISO = '', endISO = ''
                 r._absent ? (
                   <tr key={`absent-${r.date}`} className="bg-red-50/60">
                     <td className="px-4 py-3 font-medium text-gray-700">{fmtDate(r.date)}</td>
-                    <td className="px-4 py-3 text-gray-400">—</td>
                     <td className="px-4 py-3 text-gray-400">—</td>
                     <td className="px-4 py-3 text-gray-400">—</td>
                     <td className="px-4 py-3 text-gray-400">—</td>
@@ -121,15 +120,6 @@ const MonthlySummary = ({ records = [], summary = {}, startISO = '', endISO = ''
                       {r.clockOut ? `${r.totalHours}h` : (
                         <span className="text-green-600 font-medium">Active</span>
                       )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        r.locationType === 'Office'
-                          ? 'bg-blue-50 text-blue-700'
-                          : 'bg-purple-50 text-purple-700'
-                      }`}>
-                        {r.locationType}
-                      </span>
                     </td>
                     <td className="px-4 py-3">
                       {r.isLate ? (

@@ -14,8 +14,6 @@ const env = {
   CORS_ORIGIN: process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
     : ['http://localhost:5173'],
-  // Attendance
-  OFFICE_IP: process.env.OFFICE_IP || "127.0.0.1",
   // Absences are only shown from this date onwards (YYYY-MM-DD). Set to today to clear all past absents.
   ATTENDANCE_TRACK_FROM: process.env.ATTENDANCE_TRACK_FROM || new Date().toISOString().slice(0, 10),
   TIMEZONE: process.env.TIMEZONE || "Asia/Kathmandu",
@@ -40,7 +38,6 @@ const required = [
   "JWT_SECRET",
   "REFRESH_TOKEN_SECRET",
   "MONGO_URI",
-  "OFFICE_IP",
 ];
 for (const key of required) {
   if (!process.env[key]) {

@@ -34,7 +34,7 @@ export const startAutoClockOutJob = () => {
         return {
           updateOne: {
             filter: { _id: record._id },
-            update: { $set: { clockOut: effectiveClockOut, totalHours, clockOutLocationType: record.locationType } },
+            update: { $set: { clockOut: effectiveClockOut, totalHours } },
           },
         };
       });

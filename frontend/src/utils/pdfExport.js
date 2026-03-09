@@ -77,13 +77,12 @@ export const downloadAttendancePDF = ({ records, summary, userName, month }) => 
 
   autoTable(doc, {
     startY: y,
-    head: [['Date', 'Clock In', 'Clock Out', 'Hours', 'Location', 'Status']],
+    head: [['Date', 'Clock In', 'Clock Out', 'Hours', 'Status']],
     body: records.map((r) => [
       fmtBSDateStr(r.date),
       fmtTime(r.clockIn),
       fmtTime(r.clockOut),
       r.totalHours ?? '—',
-      r.locationType ?? '—',
       r.isLate ? 'Late' : 'On Time',
     ]),
     ...tableStyles,
@@ -263,14 +262,13 @@ export const downloadTeamAttendancePDF = ({ records, monthLabel }) => {
   // Detail records
   autoTable(doc, {
     startY: afterSummary,
-    head: [['Employee', 'Date', 'Clock In', 'Clock Out', 'Hours', 'Location', 'Status']],
+    head: [['Employee', 'Date', 'Clock In', 'Clock Out', 'Hours', 'Status']],
     body: records.map((r) => [
       r.user?.name ?? '—',
       fmtBSDateStr(r.date),
       fmtTime(r.clockIn),
       fmtTime(r.clockOut),
       r.totalHours != null ? r.totalHours : '—',
-      r.locationType ?? '—',
       r.isLate ? 'Late' : 'On Time',
     ]),
     ...tableStyles,
@@ -346,13 +344,12 @@ export const downloadUserReportPDF = ({ report, periodLabel }) => {
 
   autoTable(doc, {
     startY: y,
-    head: [['Date', 'Clock In', 'Clock Out', 'Hours', 'Location', 'Status']],
+    head: [['Date', 'Clock In', 'Clock Out', 'Hours', 'Status']],
     body: attendance.records.map((r) => [
       fmtBSDateStr(r.date),
       fmtTime(r.clockIn),
       fmtTime(r.clockOut),
       r.totalHours ?? '—',
-      r.locationType ?? '—',
       r.isLate ? 'Late' : 'On Time',
     ]),
     ...tableStyles,

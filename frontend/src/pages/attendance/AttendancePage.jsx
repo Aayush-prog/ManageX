@@ -164,12 +164,6 @@ const AttendancePage = () => {
 
 const fmtDate = fmtBSDateStr;
 
-const LocationBadge = ({ type }) => (
-  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-    type === 'Office' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
-  }`}>{type}</span>
-);
-
 const StatusBadge = ({ isLate }) => isLate
   ? <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-medium">Late</span>
   : <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">On time</span>;
@@ -227,12 +221,10 @@ const TeamAttendanceTable = ({ records = [], monthLabel = '', onRecordUpdated })
   const startEdit = (r) => {
     setEditingId(r._id);
     setEditForm({
-      clockIn:              toTimeInput(r.clockIn),
-      clockOut:             toTimeInput(r.clockOut),
-      locationType:         r.locationType,
-      clockOutLocationType: r.clockOutLocationType ?? r.locationType,
-      isLate:               r.isLate,
-      date:                 r.date,
+      clockIn:  toTimeInput(r.clockIn),
+      clockOut: toTimeInput(r.clockOut),
+      isLate:   r.isLate,
+      date:     r.date,
     });
   };
 
@@ -242,11 +234,9 @@ const TeamAttendanceTable = ({ records = [], monthLabel = '', onRecordUpdated })
     setSaving(true);
     try {
       const payload = {
-        clockIn:              combineDatetime(editForm.date, editForm.clockIn),
-        clockOut:             editForm.clockOut ? combineDatetime(editForm.date, editForm.clockOut) : null,
-        locationType:         editForm.locationType,
-        clockOutLocationType: editForm.clockOut ? editForm.clockOutLocationType : null,
-        isLate:               editForm.isLate,
+        clockIn:  combineDatetime(editForm.date, editForm.clockIn),
+        clockOut: editForm.clockOut ? combineDatetime(editForm.date, editForm.clockOut) : null,
+        isLate:   editForm.isLate,
       };
       const { data } = await api.patch(`/attendance/${r._id}`, payload);
       onRecordUpdated(data.data);
@@ -265,8 +255,8 @@ const TeamAttendanceTable = ({ records = [], monthLabel = '', onRecordUpdated })
   }
 
   const cols = !selectedUser
-    ? ['Name', 'Role', 'Date', 'Clock In', 'Clock Out', 'Hours', 'Location', 'Status', '']
-    : ['Date', 'Clock In', 'Clock Out', 'Hours', 'Location', 'Status', ''];
+    ? ['Name', 'Role', 'Date', 'Clock In', 'Clock Out', 'Hours', 'Status', '']
+    : ['Date', 'Clock In', 'Clock Out', 'Hours', 'Status', ''];
 
   return (
     <>
@@ -345,13 +335,6 @@ const TeamAttendanceTable = ({ records = [], monthLabel = '', onRecordUpdated })
                         </td>
                         <td className="px-2 py-2 text-gray-400 text-xs">auto</td>
                         <td className="px-2 py-2">
-                          <select value={editForm.locationType} onChange={(e) => setEditForm(f => ({ ...f, locationType: e.target.value }))}
-                            className="border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500">
-                            <option value="Office">Office</option>
-                            <option value="Remote">Remote</option>
-                          </select>
-                        </td>
-                        <td className="px-2 py-2">
                           <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
                             <input type="checkbox" checked={editForm.isLate} onChange={(e) => setEditForm(f => ({ ...f, isLate: e.target.checked }))}
                               className="rounded" />
@@ -376,7 +359,6 @@ const TeamAttendanceTable = ({ records = [], monthLabel = '', onRecordUpdated })
                         <td className="px-4 py-3 text-gray-600">{fmtTime(r.clockIn)}</td>
                         <td className="px-4 py-3 text-gray-600">{fmtTime(r.clockOut)}</td>
                         <td className="px-4 py-3 text-gray-600"><HoursCell r={r} /></td>
-                        <td className="px-4 py-3"><LocationBadge type={r.locationType} /></td>
                         <td className="px-4 py-3"><StatusBadge isLate={r.isLate} /></td>
                         <td className="px-4 py-3">
                           <button onClick={() => startEdit(r)}

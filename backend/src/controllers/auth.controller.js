@@ -39,9 +39,8 @@ export const login = async (req, res, next) => {
       },
       attendance: attendance
         ? {
-            clockIn:      attendance.clockIn,
-            locationType: attendance.locationType,
-            isLate:       attendance.isLate,
+            clockIn:  attendance.clockIn,
+            isLate:   attendance.isLate,
           }
         : null,
       checkInSkipped: skipped, // true when login is outside working hours

@@ -144,7 +144,6 @@ const ManagerDashboard = () => {
                   <th className="text-left px-4 py-3">Name</th>
                   <th className="text-left px-4 py-3">Clock In</th>
                   <th className="text-left px-4 py-3">Clock Out</th>
-                  <th className="text-left px-4 py-3">Location</th>
                   <th className="text-left px-4 py-3">Status</th>
                 </tr>
               </thead>
@@ -155,11 +154,6 @@ const ManagerDashboard = () => {
                     <td className="px-4 py-3 text-gray-600">{fmtTime(r.clockIn)}</td>
                     <td className="px-4 py-3 text-gray-600">
                       {r.clockOut ? fmtTime(r.clockOut) : <span className="text-green-600 font-medium text-xs">Active</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.locationType === 'Office' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
-                        {r.locationType}
-                      </span>
                     </td>
                     <td className="px-4 py-3">
                       {r.isLate

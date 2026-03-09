@@ -100,17 +100,6 @@ const ClockStatus = () => {
             )}
           </div>
 
-          {/* Location badge */}
-          <span
-            className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-              record.locationType === 'Office'
-                ? 'bg-blue-50 text-blue-700'
-                : 'bg-purple-50 text-purple-700'
-            }`}
-          >
-            {record.locationType}
-          </span>
-
           {/* Late badge */}
           {record.isLate && (
             <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-600">

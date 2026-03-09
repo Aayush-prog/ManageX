@@ -1,7 +1,7 @@
 import Attendance from '../models/Attendance.js';
 import CalendarEvent from '../models/CalendarEvent.js';
 import User from '../models/User.js';
-import { getLocalDateString, isLateClockIn, isOfficeIP, isOutsideCheckInWindow, isLocalDaySaturday } from '../utils/time.js';
+import { getLocalDateString, isLateClockIn, isOutsideCheckInWindow, isLocalDaySaturday } from '../utils/time.js';
 import { notify } from '../utils/notify.js';
 
 // ── Clock-in ─────────────────────────────────────────────────────────────────
@@ -40,14 +40,12 @@ export const clockInService = async (userId, requestIP) => {
     return { record: existing, skipped: false }; // idempotent
   }
 
-  const locationType = isOfficeIP(requestIP) ? 'Office' : 'Remote';
   const isLate = isLateClockIn(now);
 
   const record = await Attendance.create({
     user: userId,
     date,
     clockIn: now,
-    locationType,
     isLate,
   });
 
@@ -109,7 +107,6 @@ export const clockOutService = async (userId, requestIP) => {
   const now = new Date();
   record.clockOut = now;
   record.totalHours = parseFloat(((now - record.clockIn) / 3_600_000).toFixed(2));
-  record.clockOutLocationType = isOfficeIP(requestIP) ? 'Office' : 'Remote';
   await record.save();
 
   return record;
@@ -125,12 +122,10 @@ export const editAttendanceService = async (attendanceId, fields) => {
     throw err;
   }
 
-  const { clockIn, clockOut, locationType, clockOutLocationType, isLate } = fields;
+  const { clockIn, clockOut, isLate } = fields;
 
-  if (clockIn              !== undefined) record.clockIn              = new Date(clockIn);
-  if (locationType         !== undefined) record.locationType         = locationType;
-  if (clockOutLocationType !== undefined) record.clockOutLocationType = clockOutLocationType;
-  if (isLate               !== undefined) record.isLate               = isLate;
+  if (clockIn  !== undefined) record.clockIn  = new Date(clockIn);
+  if (isLate   !== undefined) record.isLate   = isLate;
   if (clockOut             !== undefined) record.clockOut             = clockOut ? new Date(clockOut) : null;
 
   // Recalculate totalHours whenever both times are present
