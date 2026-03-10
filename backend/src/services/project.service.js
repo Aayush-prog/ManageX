@@ -233,6 +233,7 @@ export const addCommentService = async (taskId, userId, text) => {
     { $push: { comments: { user: userId, text } } },
     { new: true }
   )
+    .populate('assignedTo', 'name email role')
     .populate('comments.user', 'name')
     .populate({ path: 'project', select: 'name members', populate: { path: 'members', select: 'name email' } });
 
