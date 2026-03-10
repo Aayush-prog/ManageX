@@ -117,6 +117,17 @@ const KanbanPage = () => {
     setDetailTask(updated);
   };
 
+  const handleTaskDeleted = (taskId) => {
+    setTasksByStatus((prev) => {
+      const next = { ...prev };
+      COLUMNS.forEach((col) => {
+        next[col] = (prev[col] ?? []).filter((t) => t._id !== taskId);
+      });
+      return next;
+    });
+    setDetailTask(null);
+  };
+
   const onDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
     if (!destination) return;
@@ -301,6 +312,7 @@ const KanbanPage = () => {
           canEdit={canManage}
           onClose={() => setDetailTask(null)}
           onUpdated={handleTaskUpdated}
+          onDeleted={handleTaskDeleted}
         />
       )}
 

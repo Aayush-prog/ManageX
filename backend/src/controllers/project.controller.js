@@ -6,6 +6,7 @@ import {
   deleteProjectService,
   createTaskService,
   updateTaskService,
+  deleteTaskService,
   addCommentService,
   getMyTasksService,
 } from '../services/project.service.js';
@@ -60,6 +61,13 @@ export const updateTask = async (req, res, next) => {
   try {
     const task = await updateTaskService(req.params.id, req.body, req.user.id);
     return res.json({ success: true, data: task });
+  } catch (err) { next(err); }
+};
+
+export const deleteTask = async (req, res, next) => {
+  try {
+    await deleteTaskService(req.params.id);
+    return res.json({ success: true });
   } catch (err) { next(err); }
 };
 

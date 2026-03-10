@@ -38,7 +38,7 @@ const fileIcon = (name) => {
 const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
 const labelCls = 'block text-xs text-gray-400 uppercase tracking-wide mb-0.5';
 
-const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onClose, onUpdated }) => {
+const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onClose, onUpdated, onDeleted }) => {
   const { user } = useAuth();
   const [task,        setTask]        = useState(initialTask);
   const [editing,     setEditing]     = useState(false);
@@ -52,6 +52,7 @@ const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onC
   });
   const [saving,      setSaving]      = useState(false);
   const [editError,   setEditError]   = useState('');
+  const [deleting,    setDeleting]    = useState(false);
   const [commentText,   setCommentText]   = useState('');
   const [submitting,    setSubmitting]    = useState(false);
   const [uploading,     setUploading]     = useState(false);
@@ -62,6 +63,16 @@ const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onC
   const commentRef = useRef(null);
 
   const setField = (k, v) => setEditForm((p) => ({ ...p, [k]: v }));
+
+  const handleDelete = async () => {
+    if (!confirm(`Delete task "${task.title}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/tasks/${task._id}`);
+      onDeleted?.(task._id);
+      onClose();
+    } catch { setDeleting(false); }
+  };
 
   const saveEdit = async (e) => {
     e.preventDefault();
@@ -167,12 +178,21 @@ const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onC
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {canEdit && !editing && (
-              <button
-                onClick={() => setEditing(true)}
-                className="text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
-              >
-                Edit
-              </button>
+              <>
+                <button
+                  onClick={() => setEditing(true)}
+                  className="text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="text-xs px-3 py-1.5 border border-red-200 rounded-lg text-red-500 hover:bg-red-50 disabled:opacity-50"
+                >
+                  {deleting ? '…' : 'Delete'}
+                </button>
+              </>
             )}
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
           </div>

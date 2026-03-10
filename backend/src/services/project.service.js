@@ -288,6 +288,23 @@ export const getMyTasksService = async (userId) =>
     .sort({ dueDate: 1 })
     .lean();
 
+export const deleteTaskService = async (taskId) => {
+  const task = await Task.findById(taskId).lean();
+  if (!task) {
+    const err = new Error('Task not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // Delete attachment files
+  for (const a of task.attachments ?? []) {
+    const filename = a.url.replace(/^\/uploads\//, '');
+    try { fs.unlinkSync(path.join(UPLOADS_DIR, filename)); } catch { /* ignore */ }
+  }
+
+  await Task.findByIdAndDelete(taskId);
+};
+
 export const deleteProjectService = async (projectId) => {
   const project = await Project.findById(projectId).lean();
   if (!project) {

@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth.js';
-import { updateTask, addComment, getMyTasks } from '../controllers/project.controller.js';
+import { authenticate, allowRoles } from '../middleware/auth.js';
+import { updateTask, deleteTask, addComment, getMyTasks } from '../controllers/project.controller.js';
 import { upload } from '../middleware/upload.js';
 import Task from '../models/Task.js';
 
@@ -10,6 +10,7 @@ router.use(authenticate);
 // IMPORTANT: specific path before parameterised path
 router.get('/my-tasks',         getMyTasks);
 router.patch('/:id',            updateTask);
+router.delete('/:id',           allowRoles('manager', 'admin'), deleteTask);
 router.post('/:id/comments',    addComment);
 
 // POST /tasks/:id/attachments  — multipart/form-data field name: "file"
