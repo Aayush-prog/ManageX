@@ -209,6 +209,13 @@ const CalendarPage = () => {
     // Column widths
     ws['!cols'] = [{ wch: 30 }, { wch: 14 }, { wch: 10 }, { wch: 35 }, { wch: 22 }, { wch: 22 }, { wch: 16 }];
 
+    // Force date column (B) to text format so Excel doesn't auto-convert BS dates
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = range.s.r; R <= range.e.r; R++) {
+      const addr = XLSX.utils.encode_cell({ c: 1, r: R });
+      if (ws[addr]) { ws[addr].t = 's'; ws[addr].z = '@'; }
+    }
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Events');
     XLSX.writeFile(wb, 'calendar_events_template.xlsx');
@@ -220,7 +227,7 @@ const CalendarPage = () => {
     setBulkSaving(true); setBulkResult(null);
     try {
       const buffer = await bulkFile.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: 'array' });
+      const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
@@ -230,7 +237,13 @@ const CalendarPage = () => {
 
       rows.forEach((row, i) => {
         const title           = String(row.title ?? row.Title ?? '').trim();
-        const bsDate          = String(row.date  ?? row.Date  ?? '').trim();
+        const rawDate         = row.date ?? row.Date ?? '';
+        // If Excel auto-converted the date cell to a number or Date object, we can't recover the BS date
+        if (typeof rawDate === 'number' || rawDate instanceof Date) {
+          parseErrors.push(`Row ${i + 2}: date was read as a number by Excel. Format the date column as Text (not Date) and re-upload.`);
+          return;
+        }
+        const bsDate          = String(rawDate).trim();
         const type            = String(row.type  ?? row.Type  ?? 'event').trim().toLowerCase();
         const description     = String(row.description ?? row.Description ?? '').trim();
         const organizerContactName     = String(row.organizerContactName     ?? row['Organizer Name']     ?? '').trim();
