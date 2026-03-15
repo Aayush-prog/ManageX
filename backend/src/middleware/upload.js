@@ -19,7 +19,7 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (_req, file, cb) => {
-  const allowed = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|txt|zip/;
+  const allowed = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|txt|zip|gpx/;
   const ext     = path.extname(file.originalname).toLowerCase().slice(1);
   allowed.test(ext) ? cb(null, true) : cb(new Error('File type not allowed'));
 };

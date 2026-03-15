@@ -17,6 +17,7 @@ const LeavePage           = lazy(() => import('../pages/leave/LeavePage.jsx'));
 const LeaveManagementPage = lazy(() => import('../pages/leave/LeaveManagementPage.jsx'));
 const CalendarPage        = lazy(() => import('../pages/calendar/CalendarPage.jsx'));
 const NotificationsPage   = lazy(() => import('../pages/notifications/NotificationsPage.jsx'));
+const GpxPage             = lazy(() => import('../pages/gpx/GpxPage.jsx'));
 const AdminDashboard      = lazy(() => import('../pages/dashboards/AdminDashboard.jsx'));
 const ManagerDashboard    = lazy(() => import('../pages/dashboards/ManagerDashboard.jsx'));
 const TeamPage            = lazy(() => import('../pages/manager/TeamPage.jsx'));
@@ -56,6 +57,7 @@ const AppRouter = () => (
         <Route path="/tasks/me"        element={<MyTasksPage />} />
         <Route path="/leave"           element={<LeavePage />} />
         <Route path="/notifications"   element={<NotificationsPage />} />
+        <Route path="/gpx"             element={<GpxPage />} />
       </Route>
 
       {/* Leave management — manager and admin */}

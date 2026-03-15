@@ -13,9 +13,10 @@ const NAV_SECTIONS = {
     {
       heading: 'Work',
       items: [
-        { label: 'Projects',   to: '/projects' },
-        { label: 'My Tasks',   to: '/tasks/me' },
-        { label: 'Calendar',   to: '/calendar' },
+        { label: 'Projects',    to: '/projects' },
+        { label: 'My Tasks',    to: '/tasks/me' },
+        { label: 'Calendar',    to: '/calendar' },
+        { label: 'GPX Tracks',  to: '/gpx' },
       ],
     },
     {
@@ -45,9 +46,10 @@ const NAV_SECTIONS = {
     {
       heading: 'Work',
       items: [
-        { label: 'Projects',  to: '/projects' },
-        { label: 'My Tasks',  to: '/tasks/me' },
-        { label: 'Calendar',  to: '/calendar' },
+        { label: 'Projects',   to: '/projects' },
+        { label: 'My Tasks',   to: '/tasks/me' },
+        { label: 'Calendar',   to: '/calendar' },
+        { label: 'GPX Tracks', to: '/gpx' },
       ],
     },
     {
@@ -84,6 +86,7 @@ const NAV_SECTIONS = {
         { label: 'Projects',   to: '/projects' },
         { label: 'My Tasks',   to: '/tasks/me' },
         { label: 'Calendar',   to: '/calendar' },
+        { label: 'GPX Tracks', to: '/gpx' },
       ],
     },
     {
@@ -103,9 +106,10 @@ const NAV_SECTIONS = {
     {
       heading: 'Work',
       items: [
-        { label: 'Projects',  to: '/projects' },
-        { label: 'My Tasks',  to: '/tasks/me' },
-        { label: 'Calendar',  to: '/calendar' },
+        { label: 'Projects',   to: '/projects' },
+        { label: 'My Tasks',   to: '/tasks/me' },
+        { label: 'Calendar',   to: '/calendar' },
+        { label: 'GPX Tracks', to: '/gpx' },
       ],
     },
     {

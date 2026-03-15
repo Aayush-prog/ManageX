@@ -10,6 +10,7 @@ import leaveRoutes       from './leave.routes.js';
 import notificationRoutes   from './notification.routes.js';
 import reportRoutes         from './report.routes.js';
 import calendarRoutes       from './calendar.routes.js';
+import gpxRoutes            from './gpx.routes.js';
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use('/leaves',      leaveRoutes);
 router.use('/notifications',  notificationRoutes);
 router.use('/reports',        reportRoutes);
 router.use('/calendar',       calendarRoutes);
+router.use('/gpx',            gpxRoutes);
 
 export default router;
