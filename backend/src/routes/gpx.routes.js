@@ -38,7 +38,7 @@ router.post('/', upload.single('file'), async (req, res, next) => {
       description:req.body.description || '',
       filename:   req.file.originalname,
       url:        `/uploads/${req.file.filename}`,
-      uploadedBy: req.user._id,
+      uploadedBy: req.user.id,
     });
 
     await track.populate('uploadedBy', 'name');
@@ -52,7 +52,7 @@ router.delete('/:id', async (req, res, next) => {
     const track = await GpxTrack.findById(req.params.id);
     if (!track) return res.status(404).json({ success: false, message: 'Track not found' });
 
-    const isOwner = track.uploadedBy.toString() === req.user._id.toString();
+    const isOwner = track.uploadedBy.toString() === req.user.id.toString();
     const isAdmin = req.user.permissionLevel === 'admin';
     if (!isOwner && !isAdmin) return res.status(403).json({ success: false, message: 'Forbidden' });
 
