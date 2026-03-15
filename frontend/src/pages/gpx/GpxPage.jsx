@@ -5,14 +5,14 @@ import api from "../../services/api.js";
 // ── GPX parser ────────────────────────────────────────────────────────────────
 function parseGpx(xmlText) {
   const doc = new DOMParser().parseFromString(xmlText, "application/xml");
-  let nodes = Array.from(doc.querySelectorAll("trkpt"));
-  if (nodes.length === 0) nodes = Array.from(doc.querySelectorAll("rtept"));
+  let nodes = Array.from(doc.getElementsByTagName("trkpt"));
+  if (nodes.length === 0) nodes = Array.from(doc.getElementsByTagName("rtept"));
 
   const points = nodes.map((pt) => ({
     lat: +pt.getAttribute("lat"),
     lon: +pt.getAttribute("lon"),
-    ele: pt.querySelector("ele") ? +pt.querySelector("ele").textContent : null,
-    time: pt.querySelector("time") ? new Date(pt.querySelector("time").textContent) : null,
+    ele: pt.getElementsByTagName("ele")[0] ? +pt.getElementsByTagName("ele")[0].textContent : null,
+    time: pt.getElementsByTagName("time")[0] ? new Date(pt.getElementsByTagName("time")[0].textContent) : null,
   }));
   return points;
 }
