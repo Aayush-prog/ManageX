@@ -180,7 +180,7 @@ const LeaveManagementPage = () => {
                       <div className="text-xs text-gray-400">{l.user?.role}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${l.type === 'Sick' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${l.type === 'Sick' ? 'bg-blue-50 text-blue-700' : l.type === 'Casual' ? 'bg-orange-50 text-orange-700' : 'bg-purple-50 text-purple-700'}`}>
                         {l.type}
                       </span>
                     </td>

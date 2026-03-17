@@ -6,6 +6,7 @@ import { notify } from '../utils/notify.js';
 
 const SICK_QUOTA   = 7; // days per year
 const ANNUAL_QUOTA = 7; // days per year
+const CASUAL_QUOTA = 7; // days per year (no advance notice required)
 const ANNUAL_ADVANCE_DAYS = 7; // must apply at least 7 days before start
 
 /**
@@ -66,7 +67,9 @@ export const requestLeaveService = async (userId, { type, startDate, endDate, re
   }
 
   // Quota check
-  const quota = type === 'Sick' ? SICK_QUOTA : ANNUAL_QUOTA;
+  const quotaMap = { Sick: SICK_QUOTA, Annual: ANNUAL_QUOTA, Casual: CASUAL_QUOTA };
+  const quota = quotaMap[type];
+  if (quota === undefined) throw new Error(`Invalid leave type: ${type}`);
   const used  = await usedDays(userId, type, year);
   if (used + days > quota) {
     throw new Error(
@@ -105,15 +108,17 @@ export const getMyLeavesService = async (userId, year, startFrom, startTo) => {
 
   // Compute quota from already-fetched leaves (avoids 2 extra DB queries)
   const active = leaves.filter((l) => ['Approved', 'Pending'].includes(l.status));
-  let sickUsed, annualUsed;
+  let sickUsed, annualUsed, casualUsed;
   if (startFrom && startTo) {
     sickUsed   = active.filter((l) => l.type === 'Sick').reduce((s, l) => s + l.days, 0);
     annualUsed = active.filter((l) => l.type === 'Annual').reduce((s, l) => s + l.days, 0);
+    casualUsed = active.filter((l) => l.type === 'Casual').reduce((s, l) => s + l.days, 0);
   } else {
     const qYear = year ? Number(year) : new Date().getFullYear();
     const activeForYear = active.filter((l) => l.year === qYear);
     sickUsed   = activeForYear.filter((l) => l.type === 'Sick').reduce((s, l) => s + l.days, 0);
     annualUsed = activeForYear.filter((l) => l.type === 'Annual').reduce((s, l) => s + l.days, 0);
+    casualUsed = activeForYear.filter((l) => l.type === 'Casual').reduce((s, l) => s + l.days, 0);
   }
 
   return {
@@ -121,6 +126,7 @@ export const getMyLeavesService = async (userId, year, startFrom, startTo) => {
     quota: {
       sick:   { total: SICK_QUOTA,   used: sickUsed,   remaining: SICK_QUOTA - sickUsed },
       annual: { total: ANNUAL_QUOTA, used: annualUsed, remaining: ANNUAL_QUOTA - annualUsed },
+      casual: { total: CASUAL_QUOTA, used: casualUsed, remaining: CASUAL_QUOTA - casualUsed },
     },
   };
 };
@@ -217,13 +223,15 @@ export const rejectLeaveService = async (leaveId, approverId, rejectionReason) =
 
 export const getQuotaService = async (userId, year) => {
   const y = year ? Number(year) : new Date().getFullYear();
-  const [sickUsed, annualUsed] = await Promise.all([
+  const [sickUsed, annualUsed, casualUsed] = await Promise.all([
     usedDays(userId, 'Sick', y),
     usedDays(userId, 'Annual', y),
+    usedDays(userId, 'Casual', y),
   ]);
   return {
     year: y,
     sick:   { total: SICK_QUOTA,   used: sickUsed,   remaining: SICK_QUOTA - sickUsed },
     annual: { total: ANNUAL_QUOTA, used: annualUsed, remaining: ANNUAL_QUOTA - annualUsed },
+    casual: { total: CASUAL_QUOTA, used: casualUsed, remaining: CASUAL_QUOTA - casualUsed },
   };
 };

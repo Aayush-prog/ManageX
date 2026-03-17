@@ -24,7 +24,7 @@ const labelCls = 'block text-sm font-medium text-gray-700 mb-1';
 // ── Request Leave Modal ───────────────────────────────────────────────────────
 
 const RequestLeaveModal = ({ onClose, onRequested }) => {
-  const [form, setForm]   = useState({ type: 'Annual', startDate: todayISO(), endDate: todayISO(), reason: '' });
+  const [form, setForm]   = useState({ type: 'Casual', startDate: todayISO(), endDate: todayISO(), reason: '' });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
@@ -55,8 +55,8 @@ const RequestLeaveModal = ({ onClose, onRequested }) => {
         <form onSubmit={submit} className="px-6 py-5 space-y-4">
           <div>
             <label className={labelCls}>Leave Type *</label>
-            <div className="flex gap-3">
-              {['Sick', 'Annual'].map((t) => (
+            <div className="flex gap-3 flex-wrap">
+              {['Casual', 'Sick', 'Annual'].map((t) => (
                 <label key={t} className="flex items-center gap-2 cursor-pointer">
                   <input type="radio" name="type" value={t} checked={form.type === t} onChange={() => set('type', t)} />
                   <span className="text-sm text-gray-700">{t} Leave</span>
@@ -65,6 +65,9 @@ const RequestLeaveModal = ({ onClose, onRequested }) => {
             </div>
             {form.type === 'Annual' && (
               <p className="text-xs text-amber-600 mt-1">Annual leave must be requested at least 7 days in advance.</p>
+            )}
+            {form.type === 'Casual' && (
+              <p className="text-xs text-blue-600 mt-1">Casual leave is for emergencies — no advance notice required.</p>
             )}
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -185,7 +188,13 @@ const LeavePage = () => {
 
         {/* Quota cards */}
         {quota && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <QuotaCard
+              label="Casual Leave"
+              used={quota.casual?.used ?? 0}
+              total={quota.casual?.total ?? 7}
+              color="bg-orange-400"
+            />
             <QuotaCard
               label="Sick Leave"
               used={quota.sick.used}
@@ -228,7 +237,7 @@ const LeavePage = () => {
                 {leaves.map((l) => (
                   <tr key={l._id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${l.type === 'Sick' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${l.type === 'Sick' ? 'bg-blue-50 text-blue-700' : l.type === 'Casual' ? 'bg-orange-50 text-orange-700' : 'bg-purple-50 text-purple-700'}`}>
                         {l.type}
                       </span>
                     </td>

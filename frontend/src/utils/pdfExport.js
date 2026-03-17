@@ -105,12 +105,13 @@ export const downloadLeavePDF = ({ leaves, quota, userName, year }) => {
     y += 6;
 
     [
+      ['Casual Leave', quota.casual?.used ?? 0, quota.casual?.total ?? 7],
       ['Sick Leave',   quota.sick.used,   quota.sick.total],
       ['Annual Leave', quota.annual.used, quota.annual.total],
     ].forEach(([label, used, total], i) => {
-      const x = 14 + i * 90;
+      const x = 14 + i * 60;
       doc.setFillColor(...LIGHT);
-      doc.roundedRect(x, y, 86, 14, 2, 2, 'F');
+      doc.roundedRect(x, y, 56, 14, 2, 2, 'F');
       doc.setFontSize(7);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(100, 100, 100);
