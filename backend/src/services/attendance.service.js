@@ -181,3 +181,32 @@ export const getTeamAttendanceService = async (start, end) => {
 };
 
 export const getAllAttendanceService = getTeamAttendanceService; // same query, different role gate
+
+// ── Manual creation (manager/admin) ──────────────────────────────────────────
+
+export const createAttendanceService = async ({ userId, date, clockIn, clockOut, isLate }) => {
+  const existing = await Attendance.findOne({ user: userId, date });
+  if (existing) {
+    const err = new Error('Attendance record already exists for this user on this date');
+    err.statusCode = 409;
+    throw err;
+  }
+
+  const clockInDate  = new Date(clockIn);
+  const clockOutDate = clockOut ? new Date(clockOut) : null;
+  const totalHours   = clockOutDate
+    ? parseFloat(((clockOutDate - clockInDate) / 3_600_000).toFixed(2))
+    : null;
+
+  const record = await Attendance.create({
+    user: userId,
+    date,
+    clockIn:    clockInDate,
+    clockOut:   clockOutDate,
+    totalHours,
+    isLate:     isLate ?? false,
+    type:       'regular',
+  });
+
+  return Attendance.findById(record._id).populate('user', 'name email role').lean();
+};

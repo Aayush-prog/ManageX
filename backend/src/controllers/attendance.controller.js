@@ -5,6 +5,7 @@ import {
   getTeamAttendanceService,
   getAllAttendanceService,
   editAttendanceService,
+  createAttendanceService,
 } from '../services/attendance.service.js';
 
 const currentYearMonth = () => {
@@ -68,6 +69,18 @@ export const editAttendance = async (req, res, next) => {
   try {
     const record = await editAttendanceService(req.params.id, req.body);
     return res.json({ success: true, data: record });
+  } catch (err) { next(err); }
+};
+
+// POST /api/attendance   (Manager / Admin) — manual record creation
+export const createAttendance = async (req, res, next) => {
+  try {
+    const { userId, date, clockIn, clockOut, isLate } = req.body;
+    if (!userId || !date || !clockIn) {
+      return res.status(400).json({ success: false, message: 'userId, date, and clockIn are required' });
+    }
+    const record = await createAttendanceService({ userId, date, clockIn, clockOut, isLate });
+    return res.status(201).json({ success: true, data: record });
   } catch (err) { next(err); }
 };
 

@@ -74,6 +74,24 @@ export const getClockOutTime = (date = new Date()) => {
 };
 
 /**
+ * Builds a Date object for the given YYYY-MM-DD date string at hour:minute
+ * in the configured local timezone.
+ */
+export const makeLocalDateTime = (dateStr, hour, minute = 0) => {
+  const ref   = new Date(dateStr + 'T12:00:00Z');
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: env.TIMEZONE,
+    timeZoneName: 'longOffset',
+  }).formatToParts(ref);
+  const raw   = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT+00:00';
+  const match = raw.match(/GMT([+-])(\d{1,2}):?(\d{2})?/);
+  const offset = match
+    ? `${match[1]}${match[2].padStart(2, '0')}:${(match[3] ?? '00').padStart(2, '0')}`
+    : '+00:00';
+  return new Date(`${dateStr}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00${offset}`);
+};
+
+/**
  * Returns true if the given date is a Saturday in the configured timezone.
  */
 export const isLocalDaySaturday = (date = new Date()) => {

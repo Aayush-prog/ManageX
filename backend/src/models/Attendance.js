@@ -30,6 +30,16 @@ const attendanceSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    type: {
+      type: String,
+      enum: ['regular', 'excursion'],
+      default: 'regular',
+    },
+    excursion: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Excursion',
+      default: null,
+    },
   },
   { timestamps: true }
 );

@@ -7,6 +7,113 @@ import api from '../../services/api.js';
 import { fmtBSDateStr, fmtTime, BS_MONTHS, currentBSMonthYear, currentBSYear, bsMonthToADRange } from '../../utils/nepaliDate.js';
 import { downloadAttendancePDF, downloadTeamAttendancePDF, downloadUserAttendanceFromTeam } from '../../utils/pdfExport.js';
 
+// ── Add Record Modal ──────────────────────────────────────────────────────────
+
+const AddRecordModal = ({ onClose, onCreated }) => {
+  const [users,   setUsers]   = useState([]);
+  const [form,    setForm]    = useState({ userId: '', date: '', clockIn: '09:00', clockOut: '17:00', isLate: false });
+  const [saving,  setSaving]  = useState(false);
+  const [error,   setError]   = useState(null);
+
+  useEffect(() => {
+    api.get('/users').then(({ data }) => setUsers(data.data ?? [])).catch(() => {});
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setSaving(true);
+    try {
+      const clockIn  = new Date(`${form.date}T${form.clockIn}:00`).toISOString();
+      const clockOut = form.clockOut ? new Date(`${form.date}T${form.clockOut}:00`).toISOString() : null;
+      const { data } = await api.post('/attendance', { userId: form.userId, date: form.date, clockIn, clockOut, isLate: form.isLate });
+      onCreated(data.data);
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Failed to create record');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="font-semibold text-gray-800">Add Attendance Record</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Employee</label>
+            <select
+              required
+              value={form.userId}
+              onChange={(e) => setForm((f) => ({ ...f, userId: e.target.value }))}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="">Select employee…</option>
+              {users.map((u) => (
+                <option key={u._id} value={u._id}>{u.name} — {u.role}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
+            <input
+              type="date"
+              required
+              value={form.date}
+              onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Clock In</label>
+              <input
+                type="time"
+                required
+                value={form.clockIn}
+                onChange={(e) => setForm((f) => ({ ...f, clockIn: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Clock Out</label>
+              <input
+                type="time"
+                value={form.clockOut}
+                onChange={(e) => setForm((f) => ({ ...f, clockOut: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.isLate}
+              onChange={(e) => setForm((f) => ({ ...f, isLate: e.target.checked }))}
+              className="rounded"
+            />
+            Mark as Late
+          </label>
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50">
+              {saving ? 'Saving…' : 'Add Record'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const AttendancePage = () => {
   const { user } = useAuth();
   const initBS = currentBSMonthYear();
@@ -20,7 +127,8 @@ const AttendancePage = () => {
 
   // Manager/Admin can view team data
   const canViewTeam = ['manager', 'admin'].includes(user?.permissionLevel);
-  const [view, setView] = useState('me'); // 'me' | 'team'
+  const [view,          setView]          = useState('me'); // 'me' | 'team'
+  const [showAddRecord, setShowAddRecord] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -94,6 +202,16 @@ const AttendancePage = () => {
             ))}
           </select>
 
+          {/* Add Record — team view only */}
+          {canViewTeam && view === 'team' && (
+            <button
+              onClick={() => setShowAddRecord(true)}
+              className="px-3 py-2 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+            >
+              + Add Record
+            </button>
+          )}
+
           {/* Download PDF */}
           {data && !loading && (
             view === 'me' ? (
@@ -156,6 +274,15 @@ const AttendancePage = () => {
           )
         )}
       </div>
+      {showAddRecord && (
+        <AddRecordModal
+          onClose={() => setShowAddRecord(false)}
+          onCreated={(newRecord) => {
+            setData((prev) => (Array.isArray(prev) ? [newRecord, ...prev] : prev));
+            setShowAddRecord(false);
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 };
@@ -164,9 +291,17 @@ const AttendancePage = () => {
 
 const fmtDate = fmtBSDateStr;
 
-const StatusBadge = ({ isLate }) => isLate
-  ? <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-medium">Late</span>
-  : <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">On time</span>;
+const StatusBadge = ({ isLate, type }) => (
+  <div className="flex items-center gap-1.5 flex-wrap">
+    {type === 'excursion' && (
+      <span className="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 font-medium">Excursion</span>
+    )}
+    {isLate
+      ? <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-medium">Late</span>
+      : <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">On time</span>
+    }
+  </div>
+);
 
 const HoursCell = ({ r }) => r.clockOut
   ? <>{r.totalHours}h</>
@@ -359,7 +494,7 @@ const TeamAttendanceTable = ({ records = [], monthLabel = '', onRecordUpdated })
                         <td className="px-4 py-3 text-gray-600">{fmtTime(r.clockIn)}</td>
                         <td className="px-4 py-3 text-gray-600">{fmtTime(r.clockOut)}</td>
                         <td className="px-4 py-3 text-gray-600"><HoursCell r={r} /></td>
-                        <td className="px-4 py-3"><StatusBadge isLate={r.isLate} /></td>
+                        <td className="px-4 py-3"><StatusBadge isLate={r.isLate} type={r.type} /></td>
                         <td className="px-4 py-3">
                           <button onClick={() => startEdit(r)}
                             className="text-xs text-brand-600 hover:text-brand-800 font-medium">

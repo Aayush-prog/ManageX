@@ -16,13 +16,13 @@ const NAV_SECTIONS = {
         { label: 'Projects',    to: '/projects' },
         { label: 'My Tasks',    to: '/tasks/me' },
         { label: 'Calendar',    to: '/calendar' },
-        { label: 'GPX Tracks',  to: '/gpx' },
       ],
     },
     {
       heading: 'HR & Team',
       items: [
         { label: 'Attendance',      to: '/attendance' },
+        { label: 'Excursions',      to: '/excursions' },
         { label: 'My Leave',        to: '/leave' },
         { label: 'Leave Requests',  to: '/leave/manage' },
         { label: 'Team',            to: '/manager/team' },
@@ -49,7 +49,6 @@ const NAV_SECTIONS = {
         { label: 'Projects',   to: '/projects' },
         { label: 'My Tasks',   to: '/tasks/me' },
         { label: 'Calendar',   to: '/calendar' },
-        { label: 'GPX Tracks', to: '/gpx' },
       ],
     },
     {
@@ -58,6 +57,7 @@ const NAV_SECTIONS = {
         { label: 'Team',           to: '/manager/team' },
         { label: 'Leave Requests', to: '/leave/manage' },
         { label: 'Attendance',     to: '/attendance' },
+        { label: 'Excursions',     to: '/excursions' },
       ],
     },
     {
@@ -86,7 +86,6 @@ const NAV_SECTIONS = {
         { label: 'Projects',   to: '/projects' },
         { label: 'My Tasks',   to: '/tasks/me' },
         { label: 'Calendar',   to: '/calendar' },
-        { label: 'GPX Tracks', to: '/gpx' },
       ],
     },
     {
@@ -109,7 +108,6 @@ const NAV_SECTIONS = {
         { label: 'Projects',   to: '/projects' },
         { label: 'My Tasks',   to: '/tasks/me' },
         { label: 'Calendar',   to: '/calendar' },
-        { label: 'GPX Tracks', to: '/gpx' },
       ],
     },
     {

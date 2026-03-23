@@ -8,6 +8,7 @@ import {
   getTeamAttendance,
   getAllAttendance,
   editAttendance,
+  createAttendance,
 } from '../controllers/attendance.controller.js';
 
 const router = Router();
@@ -21,6 +22,7 @@ router.post ('/clock-out', clockOut);
 router.get  ('/me',        getMyAttendance);
 router.get  ('/team',      allowRoles('manager', 'admin'), getTeamAttendance);
 router.get  ('/all',       allowRoles('admin'),            getAllAttendance);
+router.post ('/',          allowRoles('manager', 'admin'), createAttendance);
 router.patch('/:id',       allowRoles('manager', 'admin'), editAttendance);
 
 export default router;
