@@ -54,12 +54,16 @@ const ProjectCard = ({ project, onClick }) => {
   );
 };
 
+const STATUSES = ['All', 'Planning', 'Active', 'Completed'];
+
 const ProjectsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [search,   setSearch]   = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
 
   const canCreate = ['manager', 'admin'].includes(user?.permissionLevel);
 
@@ -71,6 +75,12 @@ const ProjectsPage = () => {
   }, []);
 
   const handleCreated = (project) => setProjects((prev) => [project, ...prev]);
+
+  const filtered = projects.filter((p) => {
+    const matchesSearch = !search.trim() || p.name.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'All' || p.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   if (loading) {
     return (
@@ -84,8 +94,32 @@ const ProjectsPage = () => {
     <DashboardLayout title="Projects">
       <div className="space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search projects…"
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 w-48"
+          />
+          <div className="flex gap-1">
+            {STATUSES.map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+                  statusFilter === s
+                    ? 'bg-brand-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          <p className="text-sm text-gray-400 ml-auto">
+            {filtered.length} of {projects.length} project{projects.length !== 1 ? 's' : ''}
+          </p>
           {canCreate && (
             <button onClick={() => setShowCreate(true)} className="btn-primary text-sm">
               + New Project
@@ -103,9 +137,13 @@ const ProjectsPage = () => {
               </button>
             )}
           </div>
+        ) : filtered.length === 0 ? (
+          <div className="card text-center py-12">
+            <p className="text-gray-400">No projects match your filters.</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {projects.map((p) => (
+            {filtered.map((p) => (
               <ProjectCard key={p._id} project={p} onClick={(id) => navigate(`/projects/${id}`)} />
             ))}
           </div>
