@@ -161,8 +161,9 @@ const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onC
     } catch { /* ignore */ }
   };
 
-  const canManageComment = (c) =>
-    canEdit || c.user?._id === user?._id || c.user?._id?.toString() === user?._id?.toString();
+  const isCommentAuthor = (c) => c.user?._id?.toString() === user?.id?.toString();
+
+  const canManageComment = (c) => canEdit || isCommentAuthor(c);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -367,7 +368,7 @@ const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onC
                       <span className="text-xs text-gray-400">{fmtDateTime(c.createdAt)}</span>
                       {canManageComment(c) && editingComment?.id !== c._id && (
                         <div className="ml-auto flex gap-1">
-                          {(c.user?._id === user?._id || c.user?._id?.toString() === user?._id?.toString()) && (
+                          {isCommentAuthor(c) && (
                             <button
                               onClick={() => setEditingComment({ id: c._id, text: c.text })}
                               className="text-xs text-gray-400 hover:text-brand-600 px-1"
