@@ -3,8 +3,8 @@ import Attendance from '../models/Attendance.js';
 import User       from '../models/User.js';
 import { isLocalDaySaturday, makeLocalDateTime } from '../utils/time.js';
 
-// Default excursion work hours
-const EXCURSION_CLOCK_IN_HOUR  = 9;
+// Default excursion work hours (12 PM – 5 PM)
+const EXCURSION_CLOCK_IN_HOUR  = 12;
 const EXCURSION_CLOCK_OUT_HOUR = 17;
 
 /**
@@ -50,7 +50,7 @@ export const createExcursionService = async (topic, startDate, endDate, createdB
         date:       dateStr,
         clockIn,
         clockOut,
-        totalHours: EXCURSION_CLOCK_OUT_HOUR - EXCURSION_CLOCK_IN_HOUR,
+        totalHours: EXCURSION_CLOCK_OUT_HOUR - EXCURSION_CLOCK_IN_HOUR, // 5 hours
         isLate:     false,
         type:       'excursion',
         excursion:  excursion._id,

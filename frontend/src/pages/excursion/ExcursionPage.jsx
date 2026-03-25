@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
 import { fmtBSDateStr } from '../../utils/nepaliDate.js';
+import BSDatePicker from '../../components/ui/BSDatePicker.jsx';
 
 const ExcursionPage = () => {
   const [excursions, setExcursions] = useState([]);
@@ -179,27 +180,22 @@ const NewExcursionModal = ({ onClose, onCreated }) => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Start Date</label>
-                <input
-                  type="date"
-                  required
+                <BSDatePicker
                   value={form.startDate}
-                  onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  onChange={(iso) => setForm((f) => ({ ...f, startDate: iso }))}
+                  placeholder="Start date"
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">End Date</label>
-                <input
-                  type="date"
-                  required
+                <BSDatePicker
                   value={form.endDate}
-                  min={form.startDate}
-                  onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  onChange={(iso) => setForm((f) => ({ ...f, endDate: iso }))}
+                  placeholder="End date"
                 />
               </div>
             </div>
-            <p className="text-xs text-gray-400">Attendance will be auto-generated for all active staff (9 AM – 5 PM) for each working day. Saturdays are skipped.</p>
+            <p className="text-xs text-gray-400">Attendance will be auto-generated for all active staff (12 PM – 5 PM) for each working day. Saturdays are skipped. Absent days are automatically marked present.</p>
             {error && <p className="text-xs text-red-500">{error}</p>}
             <div className="flex gap-2 pt-1">
               <button type="button" onClick={onClose}
