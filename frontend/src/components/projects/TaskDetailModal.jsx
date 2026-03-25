@@ -59,6 +59,8 @@ const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onC
   const [mentionQuery,  setMentionQuery]  = useState('');
   const [showMentions,  setShowMentions]  = useState(false);
   const [mentionStart,  setMentionStart]  = useState(0);
+  const [editingComment, setEditingComment] = useState(null); // { id, text }
+  const [commentEditSaving, setCommentEditSaving] = useState(false);
   const fileRef    = useRef(null);
   const commentRef = useRef(null);
 
@@ -136,6 +138,31 @@ const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onC
       setSubmitting(false);
     }
   };
+
+  const saveEditComment = async () => {
+    if (!editingComment?.text.trim()) return;
+    setCommentEditSaving(true);
+    try {
+      const { data } = await api.patch(`/tasks/${task._id}/comments/${editingComment.id}`, { text: editingComment.text.trim() });
+      setTask((prev) => ({ ...prev, comments: data.data.comments }));
+      onUpdated?.({ ...task, comments: data.data.comments });
+      setEditingComment(null);
+    } catch { /* ignore */ } finally {
+      setCommentEditSaving(false);
+    }
+  };
+
+  const deleteCommentById = async (commentId) => {
+    if (!confirm('Delete this comment?')) return;
+    try {
+      const { data } = await api.delete(`/tasks/${task._id}/comments/${commentId}`);
+      setTask((prev) => ({ ...prev, comments: data.data.comments }));
+      onUpdated?.({ ...task, comments: data.data.comments });
+    } catch { /* ignore */ }
+  };
+
+  const canManageComment = (c) =>
+    canEdit || c.user?._id === user?._id || c.user?._id?.toString() === user?._id?.toString();
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -338,14 +365,42 @@ const TaskDetailModal = ({ task: initialTask, members = [], canEdit = false, onC
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-xs font-medium text-gray-700">{c.user?.name ?? 'Unknown'}</span>
                       <span className="text-xs text-gray-400">{fmtDateTime(c.createdAt)}</span>
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      {c.text.split(/(@\w[\w ]*)/).map((part, pi) =>
-                        part.startsWith('@')
-                          ? <span key={pi} className="text-brand-600 font-medium">{part}</span>
-                          : part
+                      {canManageComment(c) && editingComment?.id !== c._id && (
+                        <div className="ml-auto flex gap-1">
+                          {(c.user?._id === user?._id || c.user?._id?.toString() === user?._id?.toString()) && (
+                            <button
+                              onClick={() => setEditingComment({ id: c._id, text: c.text })}
+                              className="text-xs text-gray-400 hover:text-brand-600 px-1"
+                            >Edit</button>
+                          )}
+                          <button
+                            onClick={() => deleteCommentById(c._id)}
+                            className="text-xs text-gray-400 hover:text-red-600 px-1"
+                          >Delete</button>
+                        </div>
                       )}
-                    </p>
+                    </div>
+                    {editingComment?.id === c._id ? (
+                      <div className="flex gap-2 mt-1">
+                        <input
+                          className="flex-1 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          value={editingComment.text}
+                          onChange={(e) => setEditingComment((prev) => ({ ...prev, text: e.target.value }))}
+                          onKeyDown={(e) => { if (e.key === 'Enter') saveEditComment(); if (e.key === 'Escape') setEditingComment(null); }}
+                          autoFocus
+                        />
+                        <button onClick={saveEditComment} disabled={commentEditSaving} className="text-xs bg-brand-600 text-white px-2 py-1 rounded hover:bg-brand-700 disabled:opacity-40">Save</button>
+                        <button onClick={() => setEditingComment(null)} className="text-xs text-gray-500 px-2 py-1 rounded hover:bg-gray-100">Cancel</button>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-600">
+                        {c.text.split(/(@\w[\w ]*)/).map((part, pi) =>
+                          part.startsWith('@')
+                            ? <span key={pi} className="text-brand-600 font-medium">{part}</span>
+                            : part
+                        )}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}

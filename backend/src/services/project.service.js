@@ -53,7 +53,10 @@ export const getProjectsService = async (userId, permissionLevel) => {
 };
 
 export const createProjectService = async (data, userId) => {
-  const project = await Project.create({ ...data, createdBy: userId });
+  const managers = await User.find({ permissionLevel: 'manager' }).select('_id').lean();
+  const managerIds = managers.map((m) => m._id.toString());
+  const memberSet = new Set([...(data.members ?? []).map(String), ...managerIds]);
+  const project = await Project.create({ ...data, members: [...memberSet], createdBy: userId });
   await project.populate([
     { path: 'members',   select: 'name email' },
     { path: 'createdBy', select: 'name' },
@@ -117,6 +120,12 @@ export const updateProjectService = async (projectId, data) => {
   const filtered = Object.fromEntries(
     Object.entries(data).filter(([k]) => ALLOWED.includes(k))
   );
+  if (filtered.members !== undefined) {
+    const managers = await User.find({ permissionLevel: 'manager' }).select('_id').lean();
+    const managerIds = managers.map((m) => m._id.toString());
+    const memberSet = new Set([...filtered.members.map(String), ...managerIds]);
+    filtered.members = [...memberSet];
+  }
   const project = await Project.findByIdAndUpdate(projectId, filtered, {
     new: true,
     runValidators: true,
@@ -225,6 +234,30 @@ export const updateTaskService = async (taskId, updates, updatedByUserId) => {
   }
 
   return task;
+};
+
+export const editCommentService = async (taskId, commentId, userId, text) => {
+  const task = await Task.findById(taskId);
+  if (!task) throw Object.assign(new Error('Task not found'), { statusCode: 404 });
+  const comment = task.comments.id(commentId);
+  if (!comment) throw Object.assign(new Error('Comment not found'), { statusCode: 404 });
+  if (comment.user.toString() !== userId)
+    throw Object.assign(new Error('Not authorized'), { statusCode: 403 });
+  comment.text = text;
+  await task.save();
+  return Task.findById(taskId).populate('comments.user', 'name');
+};
+
+export const deleteCommentService = async (taskId, commentId, userId, permissionLevel) => {
+  const task = await Task.findById(taskId);
+  if (!task) throw Object.assign(new Error('Task not found'), { statusCode: 404 });
+  const comment = task.comments.id(commentId);
+  if (!comment) throw Object.assign(new Error('Comment not found'), { statusCode: 404 });
+  if (!['manager', 'admin'].includes(permissionLevel) && comment.user.toString() !== userId)
+    throw Object.assign(new Error('Not authorized'), { statusCode: 403 });
+  comment.deleteOne();
+  await task.save();
+  return Task.findById(taskId).populate('comments.user', 'name');
 };
 
 export const addCommentService = async (taskId, userId, text) => {

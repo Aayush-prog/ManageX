@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate, allowRoles } from '../middleware/auth.js';
-import { updateTask, deleteTask, addComment, getMyTasks } from '../controllers/project.controller.js';
+import { updateTask, deleteTask, addComment, editComment, deleteComment, getMyTasks } from '../controllers/project.controller.js';
 import { upload } from '../middleware/upload.js';
 import Task from '../models/Task.js';
 
@@ -11,7 +11,9 @@ router.use(authenticate);
 router.get('/my-tasks',         getMyTasks);
 router.patch('/:id',            updateTask);
 router.delete('/:id',           allowRoles('manager', 'admin'), deleteTask);
-router.post('/:id/comments',    addComment);
+router.post('/:id/comments',                addComment);
+router.patch('/:id/comments/:commentId',   editComment);
+router.delete('/:id/comments/:commentId',  deleteComment);
 
 // POST /tasks/:id/attachments  — multipart/form-data field name: "file"
 router.post('/:id/attachments', upload.single('file'), async (req, res, next) => {

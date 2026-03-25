@@ -16,7 +16,13 @@ const EditProjectModal = ({ project, onClose, onUpdated }) => {
   const [error,  setError]  = useState('');
 
   useEffect(() => {
-    api.get('/users').then(({ data }) => setUsers(data.data ?? [])).catch(() => {});
+    api.get('/users').then(({ data }) => {
+      const all = data.data ?? [];
+      setUsers(all);
+      // Ensure managers are always included
+      const managerIds = all.filter((u) => u.permissionLevel === 'manager').map((u) => u._id);
+      setForm((p) => ({ ...p, members: [...new Set([...p.members, ...managerIds])] }));
+    }).catch(() => {});
   }, []);
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
@@ -87,18 +93,22 @@ const EditProjectModal = ({ project, onClose, onUpdated }) => {
           <div>
             <label className={labelCls}>Members</label>
             <div className="border border-gray-200 rounded-lg max-h-36 overflow-y-auto divide-y divide-gray-50">
-              {users.map((u) => (
-                <label key={u._id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer">
-                  <input type="checkbox" checked={form.members.includes(u._id)} onChange={() => toggleMember(u._id)} className="accent-brand-600" />
-                  <div className="w-7 h-7 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
-                    {u.name[0]?.toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-700 truncate">{u.name}</p>
-                    <p className="text-xs text-gray-400 capitalize">{u.role}</p>
-                  </div>
-                </label>
-              ))}
+              {users.map((u) => {
+                const isManager = u.permissionLevel === 'manager';
+                return (
+                  <label key={u._id} className={`flex items-center gap-3 px-3 py-2 hover:bg-gray-50 ${isManager ? 'cursor-default' : 'cursor-pointer'}`}>
+                    <input type="checkbox" checked={form.members.includes(u._id)} onChange={() => !isManager && toggleMember(u._id)} disabled={isManager} className="accent-brand-600" />
+                    <div className="w-7 h-7 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                      {u.name[0]?.toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-700 truncate">{u.name}</p>
+                      <p className="text-xs text-gray-400 capitalize">{u.role}</p>
+                    </div>
+                    {isManager && <span className="text-xs text-brand-600 font-medium">Manager</span>}
+                  </label>
+                );
+              })}
             </div>
           </div>
 

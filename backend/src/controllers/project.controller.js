@@ -8,6 +8,8 @@ import {
   updateTaskService,
   deleteTaskService,
   addCommentService,
+  editCommentService,
+  deleteCommentService,
   getMyTasksService,
 } from '../services/project.service.js';
 
@@ -78,6 +80,24 @@ export const addComment = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Comment text is required' });
     }
     const task = await addCommentService(req.params.id, req.user.id, text.trim());
+    return res.json({ success: true, data: task });
+  } catch (err) { next(err); }
+};
+
+export const editComment = async (req, res, next) => {
+  try {
+    const { text } = req.body;
+    if (!text?.trim()) {
+      return res.status(400).json({ success: false, message: 'Comment text is required' });
+    }
+    const task = await editCommentService(req.params.id, req.params.commentId, req.user.id, text.trim());
+    return res.json({ success: true, data: task });
+  } catch (err) { next(err); }
+};
+
+export const deleteComment = async (req, res, next) => {
+  try {
+    const task = await deleteCommentService(req.params.id, req.params.commentId, req.user.id, req.user.permissionLevel);
     return res.json({ success: true, data: task });
   } catch (err) { next(err); }
 };
