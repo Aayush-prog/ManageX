@@ -6,7 +6,8 @@
       "Bash(cd /Users/bombhu/Documents/Work/management/frontend && npm install xlsx --save 2>&1 | tail -5)",
       "Bash(cd:*)",
       "Bash(npm install:*)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(xargs cat *)"
     ]
   }
 }

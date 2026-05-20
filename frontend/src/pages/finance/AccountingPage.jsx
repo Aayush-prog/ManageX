@@ -48,8 +48,6 @@ const STATUS_BILL = {
 const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
 const labelCls = 'block text-sm font-medium text-gray-700 mb-1';
 
-const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:5000';
-
 const isImage = (url) => /\.(jpg|jpeg|png|gif|webp)$/i.test(url ?? '');
 
 // ── Attachment cell — shows link or upload button ─────────────────────────────
@@ -76,7 +74,7 @@ const AttachCell = ({ attachment, uploadUrl, onAttached }) => {
   if (attachment) {
     return (
       <a
-        href={`${API_BASE}${attachment}`}
+        href={attachment}
         target="_blank"
         rel="noopener noreferrer"
         title="View attachment"
