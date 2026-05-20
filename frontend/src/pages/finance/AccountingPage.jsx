@@ -65,7 +65,7 @@ const AttachCell = ({ attachment, uploadUrl, onAttached }) => {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const { data } = await api.post(uploadUrl, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const { data } = await api.post(uploadUrl, fd);
       onAttached(data.data);
     } catch { /* ignore */ } finally {
       setUploading(false);
@@ -150,7 +150,7 @@ const AddExpenseModal = ({ projects, onClose, onCreated }) => {
       if (file) {
         const fd = new FormData();
         fd.append('file', file);
-        const { data: ud } = await api.post(`/accounting/expenses/${record._id}/attachment`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const { data: ud } = await api.post(`/accounting/expenses/${record._id}/attachment`, fd);
         record = ud.data;
       }
       onCreated(record); onClose();
@@ -223,7 +223,7 @@ const AddBillModal = ({ projects, onClose, onCreated }) => {
       if (file) {
         const fd = new FormData();
         fd.append('file', file);
-        const { data: ud } = await api.post(`/accounting/bills/${record._id}/attachment`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const { data: ud } = await api.post(`/accounting/bills/${record._id}/attachment`, fd);
         record = ud.data;
       }
       onCreated(record); onClose();
@@ -673,7 +673,7 @@ const AddDepositModal = ({ projects, onClose, onCreated }) => {
       if (file) {
         const fd = new FormData();
         fd.append('file', file);
-        const { data: ud } = await api.post(`/accounting/deposits/${record._id}/attachment`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const { data: ud } = await api.post(`/accounting/deposits/${record._id}/attachment`, fd);
         record = ud.data;
       }
       onCreated(record); onClose();
