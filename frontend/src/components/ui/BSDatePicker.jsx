@@ -21,6 +21,7 @@ const todayBS = () => {
 };
 
 const DROPDOWN_H = 300; // approx calendar height
+const DROPDOWN_W = 272;
 
 const BSDatePicker = ({ value, onChange, placeholder = 'Select date', className = '' }) => {
   const today = todayBS();
@@ -46,9 +47,13 @@ const BSDatePicker = ({ value, onChange, placeholder = 'Select date', className 
     const rect = btnRef.current.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
     const goUp = spaceBelow < DROPDOWN_H + 8 && rect.top > DROPDOWN_H + 8;
+    const margin = 8;
+    const width = Math.min(DROPDOWN_W, window.innerWidth - margin * 2);
+    const left = Math.min(rect.left, window.innerWidth - width - margin);
+    const clampedLeft = Math.max(margin, left);
     setDropStyle(goUp
-      ? { position: 'fixed', bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width, zIndex: 9999 }
-      : { position: 'fixed', top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 }
+      ? { position: 'fixed', bottom: window.innerHeight - rect.top + 4, left: clampedLeft, width, zIndex: 9999 }
+      : { position: 'fixed', top: rect.bottom + 4, left: clampedLeft, width, zIndex: 9999 }
     );
     setOpen(o => !o);
   };
@@ -96,7 +101,7 @@ const BSDatePicker = ({ value, onChange, placeholder = 'Select date', className 
     <div
       ref={ref}
       style={dropStyle}
-      className="bg-white border border-gray-200 rounded-xl shadow-lg p-3 min-w-[272px]"
+      className="bg-white border border-gray-200 rounded-xl shadow-lg p-3"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
