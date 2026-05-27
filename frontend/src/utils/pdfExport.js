@@ -403,18 +403,18 @@ export const downloadUserReportPDF = ({ report, periodLabel }) => {
   } else {
     autoTable(doc, {
       startY: y,
-      head: [['Month', 'Base Salary', 'SSF Base (60%)', 'Emp SSF (11%)', 'Emr SSF (20%)', 'Net Pay', 'Status', 'Paid On']],
+      head: [['Month', 'Salary', 'Emp SSF (11%)', 'Emr SSF (20%)', 'Total SSF', 'Net Pay', 'Status', 'Paid On']],
       body: payroll.records.map((r) => [
         r.month,
         fmtNPR(r.baseSalary),
-        fmtNPR(r.ssfBase),
         fmtNPR(r.employeeSSF),
         fmtNPR(r.employerSSF),
+        fmtNPR(r.totalSSF),
         fmtNPR(r.finalPayableSalary),
         r.status,
         r.paidAt ? fmtD(r.paidAt) : '—',
       ]),
-      foot: [['', '', '', '', 'Total Paid', fmtNPR(payroll.totalPaid), '', '']],
+      foot: [['', '', '', 'Total Paid', fmtNPR(payroll.totalPaid), '', '', '']],
       footStyles: { fillColor: BRAND, textColor: 255, fontStyle: 'bold' },
       ...tableStyles,
       columnStyles: { 5: { fontStyle: 'bold' } },

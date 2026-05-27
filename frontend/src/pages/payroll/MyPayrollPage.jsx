@@ -64,7 +64,7 @@ const MyPayrollPage = () => {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    {['Month', 'Base Salary', 'SSF Base (60%)', 'Employee SSF (11%)', 'Employer SSF (20%)', 'Total SSF', 'Net Pay', 'Status', 'Paid On'].map((h) => (
+                    {['Month', 'Salary', 'Employee SSF (11%)', 'Employer SSF (20%)', 'Total SSF', 'Net Pay', 'Status', 'Paid On'].map((h) => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                         {h}
                       </th>
@@ -76,7 +76,6 @@ const MyPayrollPage = () => {
                     <tr key={r._id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">{fmtMonth(r.month)}</td>
                       <td className="px-4 py-3 text-gray-700">{fmtNPR(r.baseSalary)}</td>
-                      <td className="px-4 py-3 text-gray-500">{fmtNPR(r.ssfBase)}</td>
                       <td className="px-4 py-3 text-orange-600 font-medium">{fmtNPR(r.employeeSSF)}</td>
                       <td className="px-4 py-3 text-blue-600">{fmtNPR(r.employerSSF)}</td>
                       <td className="px-4 py-3 text-gray-600">{fmtNPR(r.totalSSF)}</td>
