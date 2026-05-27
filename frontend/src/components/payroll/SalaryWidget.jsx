@@ -45,10 +45,16 @@ const SalaryWidget = () => {
       <h3 className="text-base font-semibold text-gray-800 mb-3">Salary & SSF</h3>
       <div>
         <Row label="Base Salary"              value={fmtNPR(thisMonth?.baseSalary ?? 0)} />
+        <Row label="SSF Base (60% of salary)" value={thisMonth ? fmtNPR(thisMonth.ssfBase) : '—'} />
         <Row
-          label="Employee SSF (this month)"
+          label="Employee SSF — 11% (this month)"
           value={thisMonth ? fmtNPR(thisMonth.employeeSSF) : '—'}
           accent="text-orange-600"
+        />
+        <Row
+          label="Employer SSF — 20% (this month)"
+          value={thisMonth ? fmtNPR(thisMonth.employerSSF) : '—'}
+          accent="text-blue-600"
         />
         <Row
           label="Net Payable (this month)"

@@ -256,7 +256,7 @@ const PayrollPage = () => {
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                       <tr>
-                        {['Name', 'Role', 'Base Salary', 'Emp SSF', 'Emr SSF', 'Net Pay', 'Status', 'Paid On', ''].map((h) => (
+                        {['Name', 'Role', 'Base Salary', 'SSF Base (60%)', 'Emp SSF (11%)', 'Emr SSF (20%)', 'Net Pay', 'Status', 'Paid On', ''].map((h) => (
                           <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                             {h}
                           </th>
@@ -269,6 +269,7 @@ const PayrollPage = () => {
                           <td className="px-4 py-3 font-medium text-gray-800">{r.user?.name ?? '—'}</td>
                           <td className="px-4 py-3 text-gray-500 capitalize">{r.user?.role ?? '—'}</td>
                           <td className="px-4 py-3 text-gray-700">{fmtNPR(r.baseSalary)}</td>
+                          <td className="px-4 py-3 text-gray-500">{fmtNPR(r.ssfBase)}</td>
                           <td className="px-4 py-3 text-orange-600">{fmtNPR(r.employeeSSF)}</td>
                           <td className="px-4 py-3 text-blue-600">{fmtNPR(r.employerSSF)}</td>
                           <td className="px-4 py-3 text-green-600 font-semibold">{fmtNPR(r.finalPayableSalary)}</td>

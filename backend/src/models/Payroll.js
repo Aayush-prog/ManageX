@@ -14,6 +14,7 @@ const payrollSchema = new mongoose.Schema(
       match: [/^\d{4}-\d{2}$/, 'Month must be YYYY-MM'],
     },
     baseSalary:         { type: Number, required: true },
+    ssfBase:            { type: Number, required: true }, // 60% of baseSalary — SSF is calculated on this
     employeeSSF:        { type: Number, required: true },
     employerSSF:        { type: Number, required: true },
     totalSSF:           { type: Number, required: true },

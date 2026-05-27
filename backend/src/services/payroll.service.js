@@ -5,15 +5,17 @@ import SSFAccount from '../models/SSFAccount.js';
 const round2 = (n) => parseFloat(n.toFixed(2));
 
 const calcSSF = (user) => {
-  const base        = user.monthlySalary;
-  const employeeSSF = round2(base * (user.ssfEmployeePercent / 100));
-  const employerSSF = round2(base * (user.ssfEmployerPercent / 100));
+  const baseSalary  = user.monthlySalary;
+  const ssfBase     = round2(baseSalary * 0.60);           // SSF applies to 60% of salary
+  const employeeSSF = round2(ssfBase * (user.ssfEmployeePercent / 100)); // 11% of ssfBase
+  const employerSSF = round2(ssfBase * (user.ssfEmployerPercent / 100)); // 20% of ssfBase
   return {
-    baseSalary:         base,
+    baseSalary,
+    ssfBase,
     employeeSSF,
     employerSSF,
     totalSSF:           round2(employeeSSF + employerSSF),
-    finalPayableSalary: round2(base - employeeSSF),
+    finalPayableSalary: round2(baseSalary - employeeSSF),
   };
 };
 
