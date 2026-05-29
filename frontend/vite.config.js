@@ -20,8 +20,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          axios:  ['axios'],
+          vendor:    ['react', 'react-dom', 'react-router-dom'],
+          axios:     ['axios'],
+          maplibre:  ['maplibre-gl'],
         },
       },
     },

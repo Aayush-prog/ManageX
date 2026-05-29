@@ -2,6 +2,8 @@ import {
   createExcursionService,
   getExcursionsService,
   deleteExcursionService,
+  attachGpxService,
+  detachGpxService,
 } from '../services/excursion.service.js';
 
 export const getExcursions = async (req, res, next) => {
@@ -28,6 +30,23 @@ export const createExcursion = async (req, res, next) => {
 export const deleteExcursion = async (req, res, next) => {
   try {
     const excursion = await deleteExcursionService(req.params.id);
+    return res.json({ success: true, data: excursion });
+  } catch (err) { next(err); }
+};
+
+export const uploadGpx = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No GPX file uploaded' });
+    }
+    const excursion = await attachGpxService(req.params.id, req.file.filename);
+    return res.json({ success: true, data: excursion });
+  } catch (err) { next(err); }
+};
+
+export const removeGpx = async (req, res, next) => {
+  try {
+    const excursion = await detachGpxService(req.params.id);
     return res.json({ success: true, data: excursion });
   } catch (err) { next(err); }
 };

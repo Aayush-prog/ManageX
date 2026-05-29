@@ -11,6 +11,7 @@ import notificationRoutes   from './notification.routes.js';
 import reportRoutes         from './report.routes.js';
 import calendarRoutes       from './calendar.routes.js';
 import excursionRoutes      from './excursion.routes.js';
+import gpxRoutes            from './gpx.routes.js';
 
 const router = Router();
 
@@ -30,5 +31,6 @@ router.use('/notifications',  notificationRoutes);
 router.use('/reports',        reportRoutes);
 router.use('/calendar',       calendarRoutes);
 router.use('/excursions',     excursionRoutes);
+router.use('/gpx',            gpxRoutes);
 
 export default router;

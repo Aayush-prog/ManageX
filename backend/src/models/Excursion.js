@@ -21,6 +21,10 @@ const excursionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
     },
+    gpxFile: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );
