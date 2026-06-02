@@ -9,7 +9,10 @@
       "Bash(grep *)",
       "Bash(xargs cat *)",
       "Bash(npm run *)",
-      "Bash(node --input-type=module)"
+      "Bash(node --input-type=module)",
+      "Bash(xargs ls *)",
+      "Bash(cat)",
+      "Read(//tmp/**)"
     ]
   }
 }

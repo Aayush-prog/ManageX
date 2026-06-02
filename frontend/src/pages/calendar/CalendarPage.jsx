@@ -78,6 +78,14 @@ const CalendarPage = () => {
   // Contact status update
   const [statusUpdating, setStatusUpdating] = useState(null); // eventId being updated
 
+  // Edit event state
+  const [showEdit,   setShowEdit]   = useState(false);
+  const [editEvent,  setEditEvent]  = useState(null);
+  const [editDate,   setEditDate]   = useState('');
+  const [editForm,   setEditForm]   = useState({ title: '', description: '', type: 'event', organizerContactName: '', organizerContactPosition: '', organizerPhone: '' });
+  const [editError,  setEditError]  = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+
   const loadEvents = async () => {
     setLoading(true);
     const { startISO, endISO } = bsMonthToADRange(bsYear, bsMonth);
@@ -160,6 +168,38 @@ const CalendarPage = () => {
     } catch { /* ignore */ } finally {
       setStatusUpdating(null);
     }
+  };
+
+  const openEditModal = (ev) => {
+    setEditEvent(ev);
+    setEditDate(localISODate(new Date(ev.date)));
+    setEditForm({
+      title: ev.title,
+      description: ev.description || '',
+      type: ev.type,
+      organizerContactName: ev.organizerContactName || '',
+      organizerContactPosition: ev.organizerContactPosition || '',
+      organizerPhone: ev.organizerPhone || '',
+    });
+    setEditError('');
+    setShowEdit(true);
+  };
+
+  const submitEdit = async (e) => {
+    e.preventDefault();
+    if (!editDate) { setEditError('Date is required'); return; }
+    if (!editForm.title.trim()) { setEditError('Title is required'); return; }
+    setEditSaving(true); setEditError('');
+    try {
+      const { data } = await api.patch(`/calendar/${editEvent._id}`, { ...editForm, date: editDate });
+      setEvents(evs => evs.map(e => e._id === editEvent._id ? data.data : e));
+      setSelectedDay(sd =>
+        sd ? { ...sd, events: sd.events.map(e => e._id === editEvent._id ? data.data : e) } : sd
+      );
+      setShowEdit(false);
+    } catch (err) {
+      setEditError(err.response?.data?.message ?? 'Failed to update event');
+    } finally { setEditSaving(false); }
   };
 
   const downloadTemplate = () => {
@@ -457,12 +497,20 @@ const CalendarPage = () => {
                         </select>
                       )}
                       {canManage && (
-                        <button
-                          onClick={() => deleteEvent(ev._id)}
-                          className="text-xs text-red-400 hover:text-red-600"
-                        >
-                          Delete
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openEditModal(ev)}
+                            className="text-xs text-brand-500 hover:text-brand-700"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => deleteEvent(ev._id)}
+                            className="text-xs text-red-400 hover:text-red-600"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -518,7 +566,10 @@ const CalendarPage = () => {
                         <p className="text-xs text-gray-400 mt-0.5">Added by {ev.createdBy?.name}</p>
                       </div>
                       {canManage && (
-                        <button onClick={() => deleteEvent(ev._id)} className="text-xs text-red-400 hover:text-red-600 flex-shrink-0">Del</button>
+                        <div className="flex gap-2 flex-shrink-0">
+                          <button onClick={() => { setSelectedDay(null); openEditModal(ev); }} className="text-xs text-brand-500 hover:text-brand-700">Edit</button>
+                          <button onClick={() => deleteEvent(ev._id)} className="text-xs text-red-400 hover:text-red-600">Del</button>
+                        </div>
                       )}
                     </div>
                     {/* Contact status updater */}
@@ -633,6 +684,100 @@ const CalendarPage = () => {
                 </button>
                 <button type="submit" disabled={addSaving} className="text-sm px-4 py-1.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50">
                   {addSaving ? 'Saving…' : 'Add Event'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Event modal */}
+      {showEdit && (
+        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-800">Edit Event</h3>
+              <button onClick={() => setShowEdit(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+            </div>
+            <form onSubmit={submitEdit} className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-400 uppercase tracking-wide mb-0.5">Date *</label>
+                <BSDatePicker value={editDate} onChange={setEditDate} placeholder="Select date" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 uppercase tracking-wide mb-0.5">Title *</label>
+                <input
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="Event title"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 uppercase tracking-wide mb-0.5">Type *</label>
+                <select
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  value={editForm.type}
+                  onChange={(e) => setEditForm(f => ({ ...f, type: e.target.value }))}
+                >
+                  <option value="road">Road</option>
+                  <option value="trail">Trail</option>
+                  <option value="event">Event</option>
+                  <option value="holiday">Holiday</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 uppercase tracking-wide mb-0.5">Description</label>
+                <textarea
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  rows={2}
+                  value={editForm.description}
+                  onChange={(e) => setEditForm(f => ({ ...f, description: e.target.value }))}
+                  placeholder="Optional description…"
+                />
+              </div>
+              {editForm.type !== 'holiday' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 uppercase tracking-wide mb-0.5">Organizer Name</label>
+                      <input
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        value={editForm.organizerContactName}
+                        onChange={(e) => setEditForm(f => ({ ...f, organizerContactName: e.target.value }))}
+                        placeholder="Name (optional)"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 uppercase tracking-wide mb-0.5">Position</label>
+                      <input
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        value={editForm.organizerContactPosition}
+                        onChange={(e) => setEditForm(f => ({ ...f, organizerContactPosition: e.target.value }))}
+                        placeholder="Role / title (optional)"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 uppercase tracking-wide mb-0.5">Phone</label>
+                    <input
+                      type="tel"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      value={editForm.organizerPhone}
+                      onChange={(e) => setEditForm(f => ({ ...f, organizerPhone: e.target.value }))}
+                      placeholder="98XXXXXXXX (optional)"
+                    />
+                  </div>
+                </div>
+              )}
+              {editError && <p className="text-sm text-red-600">{editError}</p>}
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" onClick={() => setShowEdit(false)} className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+                  Cancel
+                </button>
+                <button type="submit" disabled={editSaving} className="text-sm px-4 py-1.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50">
+                  {editSaving ? 'Saving…' : 'Save Changes'}
                 </button>
               </div>
             </form>

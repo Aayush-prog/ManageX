@@ -84,6 +84,34 @@ router.post('/bulk', allowRoles('manager', 'admin'), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// PATCH /api/calendar/:id — manager/admin only (edit event details)
+router.patch('/:id', allowRoles('manager', 'admin'), async (req, res, next) => {
+  try {
+    const { title, description, date, type, organizerContactName, organizerContactPosition, organizerPhone } = req.body;
+    if (!title || !date || !type) {
+      return res.status(400).json({ success: false, message: 'title, date and type are required' });
+    }
+    if (!VALID_TYPES.includes(type)) {
+      return res.status(400).json({ success: false, message: `type must be one of: ${VALID_TYPES.join(', ')}` });
+    }
+    const event = await CalendarEvent.findByIdAndUpdate(
+      req.params.id,
+      {
+        title,
+        description: description || '',
+        date: new Date(date + 'T00:00:00'),
+        type,
+        organizerContactName:     organizerContactName     || '',
+        organizerContactPosition: organizerContactPosition || '',
+        organizerPhone:           organizerPhone           || '',
+      },
+      { new: true }
+    ).populate('createdBy', 'name');
+    if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+    return res.json({ success: true, data: event });
+  } catch (err) { next(err); }
+});
+
 // PATCH /api/calendar/:id/contact-status — finance/manager/admin can update
 router.patch('/:id/contact-status', allowRoles('finance', 'manager', 'admin'), async (req, res, next) => {
   try {
