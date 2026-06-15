@@ -1,6 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
-import ClockStatus from '../../components/attendance/ClockStatus.jsx';
 import MonthlySummary from '../../components/attendance/MonthlySummary.jsx';
 import { useAuth } from '../../store/AuthContext.jsx';
 import api from '../../services/api.js';
@@ -154,11 +153,8 @@ const AttendancePage = () => {
   const bsYears = [curBS, curBS - 1, curBS - 2];
 
   return (
-    <DashboardLayout title="Attendance" hideClockStatus hideSalaryWidget>
+    <DashboardLayout title="Attendance" hideSalaryWidget>
       <div className="space-y-6">
-        {/* Today's clock status */}
-        <ClockStatus />
-
         {/* Controls */}
         <div className="flex flex-wrap items-center gap-3">
           {/* View toggle (Manager / CEO only) */}
@@ -345,10 +341,9 @@ const TeamAttendanceTable = ({ records = [], monthLabel = '', onRecordUpdated })
   // Stats for selected user
   const userStats = useMemo(() => {
     if (!selectedUser) return null;
-    const late        = filtered.filter((r) => r.isLate).length;
-    const hours       = filtered.reduce((s, r) => s + (r.totalHours ?? 0), 0).toFixed(1);
-    const lateAbsents = Math.floor(late / 3);
-    return { days: filtered.length, late, hours, lateAbsents };
+    const late  = filtered.filter((r) => r.isLate).length;
+    const hours = filtered.reduce((s, r) => s + (r.totalHours ?? 0), 0).toFixed(1);
+    return { days: filtered.length, late, hours };
   }, [filtered, selectedUser]);
 
   const selectedUserObj = users.find((u) => (u?._id ?? u?.name) === selectedUser);
@@ -416,7 +411,6 @@ const TeamAttendanceTable = ({ records = [], monthLabel = '', onRecordUpdated })
               <span className="font-medium text-gray-700 capitalize">{selectedUserObj?.role}</span>
               <span>{userStats.days} day{userStats.days !== 1 ? 's' : ''}</span>
               {userStats.late > 0 && <span className="text-red-500">{userStats.late} late</span>}
-              {userStats.lateAbsents > 0 && <span className="text-orange-500">{userStats.lateAbsents} absent from lates</span>}
               <span>{userStats.hours}h total</span>
             </div>
           )}

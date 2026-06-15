@@ -1,5 +1,4 @@
 import { loginService, refreshService, logoutService } from '../services/auth.service.js';
-import { clockInService, clockOutService } from '../services/attendance.service.js';
 import env from '../config/env.js';
 
 const REFRESH_COOKIE = 'managex_refresh';
@@ -22,9 +21,6 @@ export const login = async (req, res, next) => {
 
     const { accessToken, refreshToken, user } = await loginService(email, password);
 
-    // Auto clock-in: pass real client IP (trust proxy is set in app.js)
-    const { record: attendance, skipped } = await clockInService(user._id, req.ip);
-
     res.cookie(REFRESH_COOKIE, refreshToken, cookieOptions);
 
     return res.status(200).json({
@@ -37,13 +33,6 @@ export const login = async (req, res, next) => {
         role: user.role,
         permissionLevel: user.permissionLevel,
       },
-      attendance: attendance
-        ? {
-            clockIn:  attendance.clockIn,
-            isLate:   attendance.isLate,
-          }
-        : null,
-      checkInSkipped: skipped, // true when login is outside working hours
     });
   } catch (err) {
     next(err);
@@ -69,14 +58,8 @@ export const refresh = async (req, res, next) => {
 // POST /api/auth/logout
 export const logout = async (req, res, next) => {
   try {
-    const incomingToken = req.cookies?.[REFRESH_COOKIE];
-
-    // Best effort — auto clock-out + clear tokens
     if (req.user?.id) {
-      await Promise.all([
-        clockOutService(req.user.id, req.ip),
-        logoutService(req.user.id),
-      ]);
+      await logoutService(req.user.id);
     }
 
     res.clearCookie(REFRESH_COOKIE, {

@@ -12,7 +12,11 @@
       "Bash(node --input-type=module)",
       "Bash(xargs ls *)",
       "Bash(cat)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(mongosh *)",
+      "Read(//usr/local/bin/**)",
+      "Read(//opt/homebrew/bin/**)",
+      "Bash(node leave_fix.js)"
     ]
   }
 }

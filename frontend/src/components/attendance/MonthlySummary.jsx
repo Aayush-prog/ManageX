@@ -65,12 +65,11 @@ const MonthlySummary = ({ records = [], summary = {}, startISO = '', endISO = ''
   return (
     <div className="space-y-6">
       {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <SummaryCard label="Days Present"         value={summary.daysPresent ?? 0}           accent="border-green-400" />
-        <SummaryCard label="Days Late"            value={summary.daysLate ?? 0}              accent="border-red-400" />
-        <SummaryCard label="Absents (from lates)" value={summary.lateAbsents ?? 0}           accent="border-orange-400" />
-        <SummaryCard label="Total Hours"          value={`${summary.totalHours ?? 0}h`}      accent="border-blue-400" />
-        <SummaryCard label="Avg Hours / Day"      value={`${summary.avgHoursPerDay ?? 0}h`}  accent="border-purple-400" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <SummaryCard label="Days Present"    value={summary.daysPresent ?? 0}          accent="border-green-400" />
+        <SummaryCard label="Days Late"       value={summary.daysLate ?? 0}             accent="border-red-400" />
+        <SummaryCard label="Total Hours"     value={`${summary.totalHours ?? 0}h`}     accent="border-blue-400" />
+        <SummaryCard label="Avg Hours / Day" value={`${summary.avgHoursPerDay ?? 0}h`} accent="border-purple-400" />
       </div>
 
       {/* Absent count banner */}
@@ -78,11 +77,6 @@ const MonthlySummary = ({ records = [], summary = {}, startISO = '', endISO = ''
         <div className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-100 rounded-lg text-sm text-red-700">
           <span className="font-semibold">{absentCount}</span>
           <span>absent day{absentCount !== 1 ? 's' : ''} this period</span>
-          {(summary.lateAbsents ?? 0) > 0 && (
-            <span className="ml-2 text-orange-600">
-              · {summary.lateAbsents} from accumulated lates (every 3 lates = 1 absent)
-            </span>
-          )}
         </div>
       )}
 

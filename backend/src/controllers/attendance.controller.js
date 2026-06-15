@@ -1,38 +1,10 @@
 import {
-  getTodayService,
-  clockOutService,
   getMyAttendanceService,
   getTeamAttendanceService,
   getAllAttendanceService,
   editAttendanceService,
   createAttendanceService,
 } from '../services/attendance.service.js';
-
-const currentYearMonth = () => {
-  const now = new Date();
-  return { year: now.getFullYear(), month: now.getMonth() + 1 };
-};
-
-// POST /api/attendance/clock-out
-export const clockOut = async (req, res, next) => {
-  try {
-    const record = await clockOutService(req.user.id, req.ip);
-    if (!record) {
-      return res.status(400).json({ success: false, message: 'No open session to clock out' });
-    }
-    return res.json({ success: true, data: record });
-  } catch (err) { next(err); }
-};
-
-// GET /api/attendance/me/today
-export const getToday = async (req, res, next) => {
-  try {
-    const record = await getTodayService(req.user.id);
-    return res.json({ success: true, data: record });
-  } catch (err) {
-    next(err);
-  }
-};
 
 // GET /api/attendance/me?start=YYYY-MM-DD&end=YYYY-MM-DD
 export const getMyAttendance = async (req, res, next) => {
