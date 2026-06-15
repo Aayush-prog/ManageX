@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
-import { fmtBSDate, fmtTime } from '../../utils/nepaliDate.js';
+import { fmtBSDate } from '../../utils/nepaliDate.js';
 
 const fmtDate = fmtBSDate;
 
@@ -17,34 +17,40 @@ const StatCard = ({ label, value, sub, accent, onClick }) => (
   </div>
 );
 
+const STATUS_BADGE = {
+  Planning:  'bg-gray-100 text-gray-600',
+  Active:    'bg-green-50 text-green-700',
+  Completed: 'bg-blue-50 text-blue-700',
+};
+
 const ManagerDashboard = () => {
   const navigate = useNavigate();
 
   const [stats,      setStats]      = useState(null);
   const [pendLeaves, setPendLeaves] = useState([]);
-  const [todayAtt,   setTodayAtt]   = useState([]);
+  const [projects,   setProjects]   = useState([]);
   const [loading,    setLoading]    = useState(true);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const now   = new Date();
-        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-        const [usersRes, leavesRes, attRes] = await Promise.allSettled([
+        const [usersRes, leavesRes, projRes] = await Promise.allSettled([
           api.get('/users'),
           api.get('/leaves/all', { params: { status: 'Pending' } }),
-          api.get('/attendance/team', { params: { start: today, end: today } }),
+          api.get('/projects'),
         ]);
 
-        const users  = usersRes.status  === 'fulfilled' ? (usersRes.value.data.data  ?? []) : [];
-        const leaves = leavesRes.status === 'fulfilled' ? (leavesRes.value.data.data ?? []) : [];
-        const todayRecords = attRes.status === 'fulfilled' ? (attRes.value.data.data ?? []) : [];
+        const users    = usersRes.status  === 'fulfilled' ? (usersRes.value.data.data   ?? []) : [];
+        const leaves   = leavesRes.status === 'fulfilled' ? (leavesRes.value.data.data  ?? []) : [];
+        const projs    = projRes.status   === 'fulfilled' ? (projRes.value.data.data    ?? []) : [];
 
-        setStats({ teamCount: users.length, pendingLeaves: leaves.length, activeToday: todayRecords.filter((r) => !r.clockOut).length });
-        setPendLeaves(leaves.slice(0, 5)); // show latest 5
-        setTodayAtt(todayRecords);
+        const active    = projs.filter((p) => p.status === 'Active').length;
+        const completed = projs.filter((p) => p.status === 'Completed').length;
+
+        setStats({ teamCount: users.length, pendingLeaves: leaves.length, activeProjects: active, completedProjects: completed });
+        setPendLeaves(leaves.slice(0, 5));
+        setProjects(projs.slice(0, 8));
       } catch {
         // keep defaults
       } finally {
@@ -55,118 +61,110 @@ const ManagerDashboard = () => {
   }, []);
 
   return (
-    <DashboardLayout title="Manager Dashboard" hideClockStatus={false} hideSalaryWidget={false}>
+    <DashboardLayout title="Manager Dashboard" hideSalaryWidget={false}>
       <div className="space-y-6">
 
         {/* Stat cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             label="Team Members"
             value={loading ? '…' : stats?.teamCount}
             accent="border-brand-400"
+            onClick={() => navigate('/manager/team')}
           />
           <StatCard
-            label="Pending Leave Requests"
+            label="Pending Leaves"
             value={loading ? '…' : stats?.pendingLeaves}
             sub={stats?.pendingLeaves > 0 ? 'Tap to review' : 'None pending'}
             accent={stats?.pendingLeaves > 0 ? 'border-amber-400' : 'border-gray-300'}
             onClick={() => navigate('/leave/manage')}
           />
           <StatCard
-            label="Active Today"
-            value={loading ? '…' : stats?.activeToday}
-            sub="Currently clocked in"
+            label="Active Projects"
+            value={loading ? '…' : stats?.activeProjects}
             accent="border-green-400"
+            onClick={() => navigate('/projects')}
+          />
+          <StatCard
+            label="Completed Projects"
+            value={loading ? '…' : stats?.completedProjects}
+            accent="border-blue-400"
+            onClick={() => navigate('/projects')}
           />
         </div>
 
-        {/* Pending Leave Requests */}
-        <div className="card p-0 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-700">Pending Leave Requests</h3>
-            <button
-              onClick={() => navigate('/leave/manage')}
-              className="text-xs text-brand-600 hover:text-brand-800 font-medium"
-            >
-              View all →
-            </button>
-          </div>
-          {loading ? (
-            <p className="text-sm text-gray-400 px-4 py-6">Loading…</p>
-          ) : pendLeaves.length === 0 ? (
-            <p className="text-sm text-gray-400 italic px-4 py-6">No pending leave requests.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
-                    <th className="text-left px-4 py-3">Employee</th>
-                    <th className="text-left px-4 py-3">Type</th>
-                    <th className="text-left px-4 py-3">From</th>
-                    <th className="text-left px-4 py-3">To</th>
-                    <th className="text-center px-4 py-3">Days</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendLeaves.map((l) => (
-                    <tr key={l._id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                      <td className="px-4 py-3 font-medium text-gray-800">{l.user?.name ?? '—'}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${l.type === 'Sick' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
-                          {l.type}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{fmtDate(l.startDate)}</td>
-                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{fmtDate(l.endDate)}</td>
-                      <td className="px-4 py-3 text-center font-medium text-gray-800">{l.days}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Pending Leave Requests */}
+          <div className="card p-0 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700">Pending Leave Requests</h3>
+              <button
+                onClick={() => navigate('/leave/manage')}
+                className="text-xs text-brand-600 hover:text-brand-800 font-medium"
+              >
+                View all →
+              </button>
             </div>
-          )}
-        </div>
-
-        {/* Today's Attendance */}
-        <div className="card p-0 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-700">Today's Team Attendance</h3>
-          </div>
-          {loading ? (
-            <p className="text-sm text-gray-400 px-4 py-6">Loading…</p>
-          ) : todayAtt.length === 0 ? (
-            <p className="text-sm text-gray-400 italic px-4 py-6">No attendance records for today.</p>
-          ) : (
-            <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wide">
-                  <th className="text-left px-4 py-3">Name</th>
-                  <th className="text-left px-4 py-3">Clock In</th>
-                  <th className="text-left px-4 py-3">Clock Out</th>
-                  <th className="text-left px-4 py-3">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {todayAtt.map((r) => (
-                  <tr key={r._id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                    <td className="px-4 py-3 font-medium text-gray-800">{r.user?.name ?? '—'}</td>
-                    <td className="px-4 py-3 text-gray-600">{fmtTime(r.clockIn)}</td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {r.clockOut ? fmtTime(r.clockOut) : <span className="text-green-600 font-medium text-xs">Active</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      {r.isLate
-                        ? <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-medium">Late</span>
-                        : <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">On time</span>
-                      }
-                    </td>
-                  </tr>
+            {loading ? (
+              <p className="text-sm text-gray-400 px-4 py-6">Loading…</p>
+            ) : pendLeaves.length === 0 ? (
+              <p className="text-sm text-gray-400 italic px-4 py-6">No pending leave requests.</p>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {pendLeaves.map((l) => (
+                  <div key={l._id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{l.user?.name ?? '—'}</p>
+                      <p className="text-xs text-gray-400">{fmtDate(l.startDate)} → {fmtDate(l.endDate)}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${l.type === 'Sick' ? 'bg-blue-50 text-blue-700' : l.type === 'Annual' ? 'bg-purple-50 text-purple-700' : 'bg-orange-50 text-orange-700'}`}>
+                        {l.type}
+                      </span>
+                      <span className="text-xs text-gray-500">{l.days}d</span>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            )}
           </div>
-          )}
+
+          {/* Project progress */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-gray-700">Project Progress</h3>
+              <button onClick={() => navigate('/projects')} className="text-xs text-brand-600 hover:text-brand-800 font-medium">
+                View all →
+              </button>
+            </div>
+            {loading ? (
+              <p className="text-sm text-gray-400">Loading…</p>
+            ) : projects.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">No projects yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {projects.map((p) => {
+                  const pct      = Math.round(p.completionPercentage ?? 0);
+                  const barColor = pct === 100 ? 'bg-green-500' : pct >= 50 ? 'bg-brand-500' : 'bg-amber-400';
+                  return (
+                    <div key={p._id} className="cursor-pointer hover:bg-gray-50 rounded-lg p-1.5 -mx-1.5 transition-colors"
+                      onClick={() => navigate(`/projects/${p._id}`)}>
+                      <div className="flex items-center justify-between gap-3 mb-1">
+                        <span className="text-sm font-medium text-gray-700 truncate">{p.name}</span>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[p.status] ?? ''}`}>{p.status}</span>
+                          <span className="text-xs text-gray-500 w-8 text-right">{pct}%</span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
       </div>

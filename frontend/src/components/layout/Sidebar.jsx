@@ -21,7 +21,6 @@ const NAV_SECTIONS = {
     {
       heading: 'HR & Team',
       items: [
-        { label: 'Attendance',      to: '/attendance' },
         { label: 'Excursions',      to: '/excursions' },
         { label: 'Route Map',       to: '/gpx' },
         { label: 'My Leave',        to: '/leave' },
@@ -57,7 +56,6 @@ const NAV_SECTIONS = {
       items: [
         { label: 'Team',           to: '/manager/team' },
         { label: 'Leave Requests', to: '/leave/manage' },
-        { label: 'Attendance',     to: '/attendance' },
         { label: 'Excursions',     to: '/excursions' },
         { label: 'Route Map',      to: '/gpx' },
       ],
@@ -94,7 +92,6 @@ const NAV_SECTIONS = {
     {
       heading: 'Personal',
       items: [
-        { label: 'Attendance', to: '/attendance' },
         { label: 'My Payroll', to: '/payroll/me' },
         { label: 'My Leave',   to: '/leave' },
       ],
@@ -117,7 +114,6 @@ const NAV_SECTIONS = {
     {
       heading: 'Personal',
       items: [
-        { label: 'Attendance', to: '/attendance' },
         { label: 'My Payroll', to: '/payroll/me' },
         { label: 'My Leave',   to: '/leave' },
       ],

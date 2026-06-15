@@ -50,7 +50,7 @@ const CeoDashboard = () => {
   const payroll = summary?.payroll ?? {};
 
   return (
-    <DashboardLayout title="CEO Overview" hideClockStatus={false} hideSalaryWidget={false}>
+    <DashboardLayout title="CEO Overview" hideSalaryWidget={false}>
       <div className="space-y-6">
         {/* Project KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
