@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import Payroll from '../models/Payroll.js';
 import SSFAccount from '../models/SSFAccount.js';
+import TeamMembership from '../models/TeamMembership.js';
 
 const round2 = (n) => parseFloat(n.toFixed(2));
 
@@ -21,18 +22,21 @@ const calcSSF = (user) => {
 
 // ── Generate payroll for all active users for a given month ──────────────────
 
-export const generatePayrollService = async (month) => {
+export const generatePayrollService = async (month, teamId) => {
   if (!/^\d{4}-\d{2}$/.test(month)) {
     const err = new Error('Month must be YYYY-MM');
     err.statusCode = 400;
     throw err;
   }
 
+  const userFilter = { isActive: true };
+  if (teamId) userFilter.salaryFromTeam = teamId;
+
   const [users, existingIds] = await Promise.all([
-    User.find({ isActive: true }).select(
-      'name email role monthlySalary ssfEmployeePercent ssfEmployerPercent'
+    User.find(userFilter).select(
+      'name email role monthlySalary ssfEmployeePercent ssfEmployerPercent salaryFromTeam'
     ),
-    Payroll.distinct('user', { month }),
+    Payroll.distinct('user', teamId ? { month, team: teamId } : { month }),
   ]);
 
   const existingSet = new Set(existingIds.map((id) => id.toString()));
@@ -43,7 +47,7 @@ export const generatePayrollService = async (month) => {
     if (existingSet.has(user._id.toString())) {
       skipped.push({ id: user._id, name: user.name });
     } else {
-      toCreate.push({ user: user._id, month, ...calcSSF(user) });
+      toCreate.push({ user: user._id, month, team: teamId || user.salaryFromTeam || null, ...calcSSF(user) });
     }
   }
 
@@ -93,8 +97,10 @@ export const markPaidService = async (payrollId) => {
 
 // ── Mark all pending payrolls for a month as Paid ────────────────────────────
 
-export const markAllPaidService = async (month) => {
-  const pending = await Payroll.find({ month, status: 'Pending' }).populate('user', 'name email');
+export const markAllPaidService = async (month, teamId) => {
+  const filter = { month, status: 'Pending' };
+  if (teamId) filter.team = teamId;
+  const pending = await Payroll.find(filter).populate('user', 'name email');
   if (!pending.length) return { count: 0 };
 
   const now = new Date();
@@ -135,19 +141,27 @@ export const markAllPaidService = async (month) => {
 
 // ── Employee self-service ─────────────────────────────────────────────────────
 
-export const getMyPayrollService = async (userId) =>
-  Payroll.find({ user: userId }).sort({ month: -1 }).lean();
+export const getMyPayrollService = async (userId) => {
+  const user = await User.findById(userId).select('salaryFromTeam').lean();
+  const filter = { user: userId };
+  if (user?.salaryFromTeam) filter.team = user.salaryFromTeam;
+  return Payroll.find(filter).sort({ month: -1 }).lean();
+};
 
 export const getMySSFService = async (userId) =>
   SSFAccount.findOne({ user: userId }).lean();
 
 // ── Finance: list all payrolls for a month ────────────────────────────────────
 
-export const getMonthlyPayrollService = async (month) =>
-  Payroll.find({ month })
-    .populate('user', 'name email role')
+export const getMonthlyPayrollService = async (month, teamId) => {
+  const filter = { month };
+  if (teamId) filter.team = teamId;
+  return Payroll.find(filter)
+    .populate('user', 'name email role salaryFromTeam')
+    .populate('team', 'name')
     .sort({ 'user.name': 1 })
     .lean();
+};
 
 // ── Finance: update salary or SSF rates ──────────────────────────────────────
 
@@ -186,8 +200,16 @@ export const updateSSFService = async (userId, ssfEmployeePercent, ssfEmployerPe
 
 // ── Finance: list users with salary/SSF info ─────────────────────────────────
 
-export const listUsersService = async () =>
-  User.find({ isActive: true })
-    .select('name email role monthlySalary ssfEmployeePercent ssfEmployerPercent isActive')
+export const listUsersService = async (teamId) => {
+  let userFilter = { isActive: true };
+  if (teamId) {
+    const memberships = await TeamMembership.find({ team: teamId }).select('user').lean();
+    const memberIds = memberships.map((m) => m.user);
+    userFilter._id = { $in: memberIds };
+  }
+  return User.find(userFilter)
+    .select('name email role monthlySalary ssfEmployeePercent ssfEmployerPercent isActive salaryFromTeam')
+    .populate('salaryFromTeam', 'name')
     .sort({ name: 1 })
     .lean();
+};

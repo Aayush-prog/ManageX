@@ -28,7 +28,8 @@ export const getMyLeaves = async (req, res) => {
 // GET /api/leaves/all?year=&status=&userId=
 export const getAllLeaves = async (req, res) => {
   try {
-    ok(res, await getAllLeavesService(req.query));
+    const teamId = req.headers['x-active-team'] || null;
+    ok(res, await getAllLeavesService({ ...req.query, teamId }));
   } catch (e) { err(res, e); }
 };
 

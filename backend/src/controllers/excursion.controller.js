@@ -8,7 +8,8 @@ import {
 
 export const getExcursions = async (req, res, next) => {
   try {
-    const data = await getExcursionsService();
+    const teamId = req.headers['x-active-team'] || null;
+    const data = await getExcursionsService(teamId);
     return res.json({ success: true, data });
   } catch (err) { next(err); }
 };
@@ -22,7 +23,8 @@ export const createExcursion = async (req, res, next) => {
     if (startDate > endDate) {
       return res.status(400).json({ success: false, message: 'startDate must be before or equal to endDate' });
     }
-    const result = await createExcursionService(topic, startDate, endDate, req.user.id);
+    const teamId = req.headers['x-active-team'] || null;
+    const result = await createExcursionService(topic, startDate, endDate, req.user.id, teamId);
     return res.status(201).json({ success: true, data: result });
   } catch (err) { next(err); }
 };

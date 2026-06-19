@@ -10,6 +10,7 @@ const billSchema = new mongoose.Schema({
   status:      { type: String, enum: ['Unpaid', 'Paid'], default: 'Unpaid' },
   paidAt:      { type: Date },
   createdBy:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },
 }, { timestamps: true });
 
 billSchema.index({ status: 1 });

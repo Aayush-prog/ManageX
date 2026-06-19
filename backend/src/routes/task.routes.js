@@ -10,7 +10,7 @@ router.use(authenticate);
 // IMPORTANT: specific path before parameterised path
 router.get('/my-tasks',         getMyTasks);
 router.patch('/:id',            updateTask);
-router.delete('/:id',           allowRoles('manager', 'admin'), deleteTask);
+router.delete('/:id',           allowRoles('coordinator', 'admin'), deleteTask);
 router.post('/:id/comments',                addComment);
 router.patch('/:id/comments/:commentId',   editComment);
 router.delete('/:id/comments/:commentId',  deleteComment);

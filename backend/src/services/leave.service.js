@@ -1,5 +1,6 @@
-import Leave from '../models/Leave.js';
-import User  from '../models/User.js';
+import Leave          from '../models/Leave.js';
+import User           from '../models/User.js';
+import TeamMembership from '../models/TeamMembership.js';
 import { sendEmail } from '../utils/email.js';
 import * as tpl from '../utils/emailTemplates.js';
 import { notify } from '../utils/notify.js';
@@ -80,8 +81,14 @@ export const requestLeaveService = async (userId, { type, startDate, endDate, re
   const leave = await Leave.create({ user: userId, type, startDate, endDate, days, reason, year });
   await leave.populate('user', 'name email role');
 
-  // Notify all managers and admins
-  const managers = await User.find({ permissionLevel: { $in: ['manager', 'admin'] }, isActive: true }).select('email').lean();
+  // Notify all coordinators, admins, and super admins
+  const managers = await User.find({
+    $or: [
+      { permissionLevel: { $in: ['coordinator', 'admin'] } },
+      { isSuperAdmin: true }
+    ],
+    isActive: true,
+  }).select('email').lean();
   const managerEmails = managers.map((m) => m.email).filter(Boolean);
   if (managerEmails.length) {
     const { subject, html } = tpl.leaveRequested({ employeeName: leave.user.name, type, startDate, endDate, days, reason });
@@ -133,15 +140,24 @@ export const getMyLeavesService = async (userId, year, startFrom, startTo) => {
 
 // ── All leaves (manager / admin) ───────────────────────────────────────────────
 
-export const getAllLeavesService = async ({ year, startFrom, startTo, status, userId: filterUserId } = {}) => {
+export const getAllLeavesService = async ({ year, startFrom, startTo, status, userId: filterUserId, teamId } = {}) => {
   const filter = {};
   if (startFrom && startTo) {
-    filter.startDate = { $gte: startFrom, $lte: startTo }; // String comparison (YYYY-MM-DD)
+    filter.startDate = { $gte: startFrom, $lte: startTo };
   } else if (year) {
     filter.year = Number(year);
   }
   if (status)       filter.status = status;
   if (filterUserId) filter.user   = filterUserId;
+
+  if (teamId) {
+    const memberships = await TeamMembership.find({ team: teamId }).select('user').lean();
+    const memberIds   = memberships.map((m) => m.user);
+    filter.user = filterUserId
+      ? (memberIds.some((id) => id.toString() === filterUserId) ? filterUserId : null)
+      : { $in: memberIds };
+    if (filter.user === null) return [];
+  }
 
   return Leave.find(filter)
     .populate('user',       'name email role')

@@ -16,7 +16,9 @@
       "Bash(mongosh *)",
       "Read(//usr/local/bin/**)",
       "Read(//opt/homebrew/bin/**)",
-      "Bash(node leave_fix.js)"
+      "Bash(node leave_fix.js)",
+      "Bash(node src/seeds/seed.js)",
+      "Bash(node *)"
     ]
   }
 }

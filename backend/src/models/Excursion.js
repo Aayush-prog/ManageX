@@ -25,6 +25,11 @@ const excursionSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    team: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Team',
+      default: null,
+    },
   },
   { timestamps: true }
 );

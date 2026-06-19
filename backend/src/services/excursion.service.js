@@ -1,8 +1,9 @@
-import fs         from 'fs';
-import path       from 'path';
-import Excursion  from '../models/Excursion.js';
-import Attendance from '../models/Attendance.js';
-import User       from '../models/User.js';
+import fs             from 'fs';
+import path           from 'path';
+import Excursion      from '../models/Excursion.js';
+import Attendance     from '../models/Attendance.js';
+import User           from '../models/User.js';
+import TeamMembership from '../models/TeamMembership.js';
 import { isLocalDaySaturday, makeLocalDateTime } from '../utils/time.js';
 import { UPLOAD_DIR } from '../middleware/upload.js';
 
@@ -31,10 +32,17 @@ const getWorkingDates = (startDate, endDate) => {
   return dates;
 };
 
-export const createExcursionService = async (topic, startDate, endDate, createdById) => {
-  const excursion = await Excursion.create({ topic, startDate, endDate, createdBy: createdById });
+export const createExcursionService = async (topic, startDate, endDate, createdById, teamId) => {
+  const excursion = await Excursion.create({ topic, startDate, endDate, createdBy: createdById, team: teamId || null });
 
-  const users       = await User.find({ isActive: true }).select('_id').lean();
+  let users;
+  if (teamId) {
+    const memberships = await TeamMembership.find({ team: teamId }).select('user').lean();
+    const memberIds   = memberships.map((m) => m.user);
+    users = await User.find({ _id: { $in: memberIds }, isActive: true }).select('_id').lean();
+  } else {
+    users = await User.find({ isActive: true }).select('_id').lean();
+  }
   const workingDays = getWorkingDates(startDate, endDate);
 
   let created = 0;
@@ -65,8 +73,10 @@ export const createExcursionService = async (topic, startDate, endDate, createdB
   return { excursion, created, skipped, days: workingDays.length };
 };
 
-export const getExcursionsService = async () =>
-  Excursion.find().populate('createdBy', 'name').sort({ startDate: -1 }).lean();
+export const getExcursionsService = async (teamId) => {
+  const filter = teamId ? { team: teamId } : {};
+  return Excursion.find(filter).populate('createdBy', 'name').sort({ startDate: -1 }).lean();
+};
 
 export const deleteExcursionService = async (id) => {
   const excursion = await Excursion.findById(id);

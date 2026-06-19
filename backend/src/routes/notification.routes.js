@@ -57,8 +57,8 @@ router.get('/', async (req, res, next) => {
       });
     }
 
-    // ── Computed: pending leave requests — manager and admin only ───────────
-    if (['manager', 'admin'].includes(permissionLevel)) {
+    // ── Computed: pending leave requests — coordinator, admin, and super admin only ───────────
+    if (req.user.isSuperAdmin || ['coordinator', 'admin'].includes(permissionLevel)) {
       const pendingLeaves = await Leave.find({ status: 'Pending' })
         .populate('user', 'name')
         .select('user type days startDate')

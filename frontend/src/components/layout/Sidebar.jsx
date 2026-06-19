@@ -2,10 +2,50 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext.jsx';
 import { ChangePasswordModal } from '../../pages/admin/UsersPage.jsx';
+import TeamSwitcher from './TeamSwitcher.jsx';
 import logo from '../../assets/logo-removebg-preview.png';
 
 // Each role's nav is an array of sections: { heading?: string, items: [{ label, to }] }
 const NAV_SECTIONS = {
+  superAdmin: [
+    {
+      items: [{ label: 'Dashboard', to: '/superadmin/dashboard' }],
+    },
+    {
+      heading: 'System',
+      items: [
+        { label: 'Teams', to: '/superadmin/teams' },
+        { label: 'Users', to: '/admin/users' },
+      ],
+    },
+    {
+      heading: 'Work',
+      items: [
+        { label: 'Projects',   to: '/projects' },
+        { label: 'My Tasks',   to: '/tasks/me' },
+        { label: 'Calendar',   to: '/calendar' },
+      ],
+    },
+    {
+      heading: 'HR & Team',
+      items: [
+        { label: 'Excursions',     to: '/excursions' },
+        { label: 'Route Map',      to: '/gpx' },
+        { label: 'My Leave',       to: '/leave' },
+        { label: 'Leave Requests', to: '/leave/manage' },
+        { label: 'Team',           to: '/manager/team' },
+      ],
+    },
+    {
+      heading: 'Finance',
+      items: [
+        { label: 'My Payroll',   to: '/payroll/me' },
+        { label: 'Payroll Mgmt', to: '/finance/payroll' },
+        { label: 'Accounting',   to: '/finance/accounting' },
+      ],
+    },
+  ],
+
   admin: [
     {
       items: [{ label: 'Dashboard', to: '/admin/dashboard' }],
@@ -39,6 +79,37 @@ const NAV_SECTIONS = {
     },
   ],
 
+  coordinator: [
+    {
+      items: [{ label: 'Dashboard', to: '/manager/dashboard' }],
+    },
+    {
+      heading: 'Work',
+      items: [
+        { label: 'Projects',   to: '/projects' },
+        { label: 'My Tasks',   to: '/tasks/me' },
+        { label: 'Calendar',   to: '/calendar' },
+      ],
+    },
+    {
+      heading: 'Team',
+      items: [
+        { label: 'Team',           to: '/manager/team' },
+        { label: 'Leave Requests', to: '/leave/manage' },
+        { label: 'Excursions',     to: '/excursions' },
+        { label: 'Route Map',      to: '/gpx' },
+      ],
+    },
+    {
+      heading: 'Personal',
+      items: [
+        { label: 'My Payroll', to: '/payroll/me' },
+        { label: 'My Leave',   to: '/leave' },
+      ],
+    },
+  ],
+
+  // legacy — kept for users whose permissionLevel hasn't been migrated yet
   manager: [
     {
       items: [{ label: 'Dashboard', to: '/manager/dashboard' }],
@@ -119,13 +190,61 @@ const NAV_SECTIONS = {
       ],
     },
   ],
+
+  volunteer: [
+    {
+      items: [{ label: 'Dashboard', to: '/staff/dashboard' }],
+    },
+    {
+      heading: 'Work',
+      items: [
+        { label: 'Projects',   to: '/projects' },
+        { label: 'My Tasks',   to: '/tasks/me' },
+        { label: 'Calendar',   to: '/calendar' },
+        { label: 'Route Map',  to: '/gpx' },
+      ],
+    },
+    {
+      heading: 'Personal',
+      items: [
+        { label: 'My Payroll', to: '/payroll/me' },
+        { label: 'My Leave',   to: '/leave' },
+      ],
+    },
+  ],
+
+  viewer: [
+    {
+      items: [{ label: 'Dashboard', to: '/staff/dashboard' }],
+    },
+    {
+      heading: 'Work',
+      items: [
+        { label: 'Projects',   to: '/projects' },
+        { label: 'My Tasks',   to: '/tasks/me' },
+        { label: 'Calendar',   to: '/calendar' },
+        { label: 'Route Map',  to: '/gpx' },
+      ],
+    },
+    {
+      heading: 'Personal',
+      items: [
+        { label: 'My Payroll', to: '/payroll/me' },
+        { label: 'My Leave',   to: '/leave' },
+      ],
+    },
+  ],
 };
 
 const Sidebar = ({ isOpen, onClose }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isSuperAdmin, activeTeam, activeTeamRole } = useAuth();
   const navigate = useNavigate();
-  const sections = NAV_SECTIONS[user?.permissionLevel] || [];
   const [showChangePw, setShowChangePw] = useState(false);
+
+  const navKey = isSuperAdmin ? 'superAdmin' : (activeTeamRole || user?.permissionLevel);
+  const sections = NAV_SECTIONS[navKey] || NAV_SECTIONS['staff'] || [];
+
+  const displayRole = isSuperAdmin ? 'Super Admin' : (activeTeamRole || user?.permissionLevel);
 
   const handleLogout = async () => {
     await logout();
@@ -164,9 +283,15 @@ const Sidebar = ({ isOpen, onClose }) => {
           <p className="text-sm font-semibold truncate">{user?.name || 'User'}</p>
           <p className="text-xs text-gray-400 truncate mt-0.5">{user?.role}</p>
           <span className="text-xs bg-brand-700 text-brand-100 px-2 py-0.5 rounded-full mt-1.5 inline-block capitalize">
-            {user?.permissionLevel}
+            {displayRole}
           </span>
+          {activeTeam && (
+            <p className="text-xs text-brand-300 mt-0.5">{activeTeam.name}</p>
+          )}
         </div>
+
+        {/* Team switcher */}
+        <TeamSwitcher />
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-4">

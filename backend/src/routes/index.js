@@ -12,6 +12,7 @@ import reportRoutes         from './report.routes.js';
 import calendarRoutes       from './calendar.routes.js';
 import excursionRoutes      from './excursion.routes.js';
 import gpxRoutes            from './gpx.routes.js';
+import teamRoutes           from './team.routes.js';
 
 const router = Router();
 
@@ -32,5 +33,6 @@ router.use('/reports',        reportRoutes);
 router.use('/calendar',       calendarRoutes);
 router.use('/excursions',     excursionRoutes);
 router.use('/gpx',            gpxRoutes);
+router.use('/teams',          teamRoutes);
 
 export default router;

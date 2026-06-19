@@ -10,12 +10,15 @@ import {
   adminSetPasswordService,
   changeOwnPasswordService,
   toggleActiveService,
+  updateSalaryFromTeamService,
+  updateUserService,
 } from '../services/user.service.js';
 
-// GET /api/users   [finance, ceo, manager]
+// GET /api/users   [finance, coordinator, admin]
 export const listUsers = async (req, res, next) => {
   try {
-    const users = await listUsersService();
+    const teamId = req.headers['x-active-team'] || null;
+    const users = await listUsersService(teamId);
     return res.json({ success: true, data: users });
   } catch (err) { next(err); }
 };
@@ -75,6 +78,22 @@ export const changePassword = async (req, res, next) => {
 export const toggleActive = async (req, res, next) => {
   try {
     const user = await toggleActiveService(req.params.id);
+    return res.json({ success: true, data: user });
+  } catch (err) { next(err); }
+};
+
+// PATCH /api/users/:id   [super admin]
+export const updateUser = async (req, res, next) => {
+  try {
+    const user = await updateUserService(req.params.id, req.body);
+    return res.json({ success: true, data: user });
+  } catch (err) { next(err); }
+};
+
+// PATCH /api/users/:id/salary-from-team   [super admin, finance, admin]
+export const updateSalaryFromTeam = async (req, res, next) => {
+  try {
+    const user = await updateSalaryFromTeamService(req.params.id, req.body.salaryFromTeam);
     return res.json({ success: true, data: user });
   } catch (err) { next(err); }
 };

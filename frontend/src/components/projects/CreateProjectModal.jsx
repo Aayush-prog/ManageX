@@ -1,24 +1,33 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api.js';
 import BSDatePicker from '../ui/BSDatePicker.jsx';
+import { useAuth } from '../../store/AuthContext.jsx';
 
 const INITIAL = { name: '', description: '', startDate: '', endDate: '', status: 'Planning', members: [] };
 
 const CreateProjectModal = ({ onClose, onCreated }) => {
+  const { activeTeam } = useAuth();
   const [form,    setForm]    = useState(INITIAL);
   const [users,   setUsers]   = useState([]);
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
 
   useEffect(() => {
-    api.get('/users').then(({ data }) => {
-      const all = data.data ?? [];
+    const fetchUsers = activeTeam
+      ? api.get(`/teams/${activeTeam._id}/members`).then(({ data }) => {
+          const memberships = data.data ?? [];
+          return memberships
+            .filter((m) => m.user?.isActive !== false)
+            .map((m) => ({ ...m.user, teamRole: m.role }));
+        })
+      : api.get('/users').then(({ data }) => data.data ?? []);
+
+    fetchUsers.then((all) => {
       setUsers(all);
-      // Auto-include managers
-      const managerIds = all.filter((u) => u.permissionLevel === 'manager').map((u) => u._id);
-      setForm((p) => ({ ...p, members: [...new Set([...p.members, ...managerIds])] }));
+      const autoIds = all.filter((u) => u.teamRole === 'coordinator').map((u) => u._id);
+      setForm((p) => ({ ...p, members: [...new Set([...p.members, ...autoIds])] }));
     }).catch(() => {});
-  }, []);
+  }, [activeTeam?._id]);
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -93,10 +102,11 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
             <label className={labelCls}>Members</label>
             <div className="border border-gray-200 rounded-lg max-h-36 overflow-y-auto divide-y divide-gray-50">
               {users.map((u) => {
-                const isManager = u.permissionLevel === 'manager';
+                const isCoordinator = u.teamRole === 'coordinator';
+                const isSA = u.teamRole === 'superAdmin';
                 return (
-                  <label key={u._id} className={`flex items-center gap-3 px-3 py-2 hover:bg-gray-50 ${isManager ? 'cursor-default' : 'cursor-pointer'}`}>
-                    <input type="checkbox" checked={form.members.includes(u._id)} onChange={() => !isManager && toggleMember(u._id)} disabled={isManager} className="accent-brand-600" />
+                  <label key={u._id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" checked={form.members.includes(u._id)} onChange={() => !isCoordinator && toggleMember(u._id)} disabled={isCoordinator} className="accent-brand-600" />
                     <div className="w-7 h-7 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
                       {u.name[0]?.toUpperCase()}
                     </div>
@@ -104,7 +114,8 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
                       <p className="text-sm font-medium text-gray-700 truncate">{u.name}</p>
                       <p className="text-xs text-gray-400 capitalize">{u.role}</p>
                     </div>
-                    {isManager && <span className="text-xs text-brand-600 font-medium">Manager</span>}
+                    {isCoordinator && <span className="text-xs text-brand-600 font-medium">Coordinator</span>}
+                    {isSA && <span className="text-xs text-yellow-600 font-medium">Super Admin</span>}
                   </label>
                 );
               })}

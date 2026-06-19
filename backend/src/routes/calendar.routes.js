@@ -25,8 +25,8 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /api/calendar — manager/admin only
-router.post('/', allowRoles('manager', 'admin'), async (req, res, next) => {
+// POST /api/calendar — coordinator/admin only
+router.post('/', allowRoles('coordinator', 'admin'), async (req, res, next) => {
   try {
     const { title, description, date, type, organizerContactName, organizerContactPosition, organizerPhone } = req.body;
     if (!title || !date || !type) {
@@ -52,7 +52,7 @@ router.post('/', allowRoles('manager', 'admin'), async (req, res, next) => {
 
 // POST /api/calendar/bulk — accepts pre-parsed JSON array from frontend
 // Each item: { title, date (AD ISO), type, description, organizerContact? }
-router.post('/bulk', allowRoles('manager', 'admin'), async (req, res, next) => {
+router.post('/bulk', allowRoles('coordinator', 'admin'), async (req, res, next) => {
   try {
     const rows = req.body;
     if (!Array.isArray(rows) || rows.length === 0) {
@@ -84,8 +84,8 @@ router.post('/bulk', allowRoles('manager', 'admin'), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// PATCH /api/calendar/:id — manager/admin only (edit event details)
-router.patch('/:id', allowRoles('manager', 'admin'), async (req, res, next) => {
+// PATCH /api/calendar/:id — coordinator/admin only (edit event details)
+router.patch('/:id', allowRoles('coordinator', 'admin'), async (req, res, next) => {
   try {
     const { title, description, date, type, organizerContactName, organizerContactPosition, organizerPhone } = req.body;
     if (!title || !date || !type) {
@@ -112,8 +112,8 @@ router.patch('/:id', allowRoles('manager', 'admin'), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// PATCH /api/calendar/:id/contact-status — finance/manager/admin can update
-router.patch('/:id/contact-status', allowRoles('finance', 'manager', 'admin'), async (req, res, next) => {
+// PATCH /api/calendar/:id/contact-status — finance/coordinator/admin can update
+router.patch('/:id/contact-status', allowRoles('finance', 'coordinator', 'admin'), async (req, res, next) => {
   try {
     const { contactStatus } = req.body;
     const VALID_STATUSES = ['pending', 'contacted', 'rejected', 'allowed'];
@@ -130,8 +130,8 @@ router.patch('/:id/contact-status', allowRoles('finance', 'manager', 'admin'), a
   } catch (err) { next(err); }
 });
 
-// DELETE /api/calendar/:id — manager/admin only
-router.delete('/:id', allowRoles('manager', 'admin'), async (req, res, next) => {
+// DELETE /api/calendar/:id — coordinator/admin only
+router.delete('/:id', allowRoles('coordinator', 'admin'), async (req, res, next) => {
   try {
     const event = await CalendarEvent.findByIdAndDelete(req.params.id);
     if (!event) return res.status(404).json({ success: false, message: 'Event not found' });

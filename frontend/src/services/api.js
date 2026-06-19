@@ -12,6 +12,14 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Attach active team header
+  const activeTeamRaw = localStorage.getItem('managex_active_team');
+  if (activeTeamRaw) {
+    try {
+      const team = JSON.parse(activeTeamRaw);
+      if (team?._id) config.headers['X-Active-Team'] = team._id;
+    } catch {}
+  }
   // Let the browser set Content-Type (with boundary) for multipart uploads
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type'];

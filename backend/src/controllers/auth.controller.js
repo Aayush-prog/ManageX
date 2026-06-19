@@ -32,6 +32,7 @@ export const login = async (req, res, next) => {
         email: user.email,
         role: user.role,
         permissionLevel: user.permissionLevel,
+        isSuperAdmin: user.isSuperAdmin || false,
       },
     });
   } catch (err) {

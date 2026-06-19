@@ -17,21 +17,23 @@ import {
 
 export const getProjects = async (req, res, next) => {
   try {
-    const projects = await getProjectsService(req.user.id, req.user.permissionLevel);
+    const teamId = req.headers['x-active-team'] || null;
+    const projects = await getProjectsService(req.user.id, req.user.permissionLevel, req.user.isSuperAdmin, teamId);
     return res.json({ success: true, data: projects });
   } catch (err) { next(err); }
 };
 
 export const createProject = async (req, res, next) => {
   try {
-    const project = await createProjectService(req.body, req.user.id);
+    const teamId = req.headers['x-active-team'] || null;
+    const project = await createProjectService(req.body, req.user.id, teamId);
     return res.status(201).json({ success: true, data: project });
   } catch (err) { next(err); }
 };
 
 export const getProjectById = async (req, res, next) => {
   try {
-    const project = await getProjectByIdService(req.params.id, req.user.id, req.user.permissionLevel);
+    const project = await getProjectByIdService(req.params.id, req.user.id, req.user.permissionLevel, req.user.isSuperAdmin);
     return res.json({ success: true, data: project });
   } catch (err) { next(err); }
 };
@@ -97,14 +99,15 @@ export const editComment = async (req, res, next) => {
 
 export const deleteComment = async (req, res, next) => {
   try {
-    const task = await deleteCommentService(req.params.id, req.params.commentId, req.user.id, req.user.permissionLevel);
+    const task = await deleteCommentService(req.params.id, req.params.commentId, req.user.id, req.user.permissionLevel, req.user.isSuperAdmin);
     return res.json({ success: true, data: task });
   } catch (err) { next(err); }
 };
 
 export const getMyTasks = async (req, res, next) => {
   try {
-    const tasks = await getMyTasksService(req.user.id);
+    const teamId = req.headers['x-active-team'] || null;
+    const tasks = await getMyTasksService(req.user.id, teamId);
     return res.json({ success: true, data: tasks });
   } catch (err) { next(err); }
 };

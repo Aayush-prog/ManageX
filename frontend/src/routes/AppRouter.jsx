@@ -5,43 +5,51 @@ import ProtectedRoute from './ProtectedRoute.jsx';
 
 import Login from '../pages/auth/Login.jsx';
 
-const AttendancePage      = lazy(() => import('../pages/attendance/AttendancePage.jsx'));
-const MyPayrollPage       = lazy(() => import('../pages/payroll/MyPayrollPage.jsx'));
-const PayrollPage         = lazy(() => import('../pages/finance/PayrollPage.jsx'));
-const AccountingPage      = lazy(() => import('../pages/finance/AccountingPage.jsx'));
-const UsersPage           = lazy(() => import('../pages/admin/UsersPage.jsx'));
-const ProjectsPage        = lazy(() => import('../pages/projects/ProjectsPage.jsx'));
-const KanbanPage          = lazy(() => import('../pages/projects/KanbanPage.jsx'));
-const MyTasksPage         = lazy(() => import('../pages/projects/MyTasksPage.jsx'));
-const LeavePage           = lazy(() => import('../pages/leave/LeavePage.jsx'));
-const LeaveManagementPage = lazy(() => import('../pages/leave/LeaveManagementPage.jsx'));
-const CalendarPage        = lazy(() => import('../pages/calendar/CalendarPage.jsx'));
-const NotificationsPage   = lazy(() => import('../pages/notifications/NotificationsPage.jsx'));
-const ExcursionPage       = lazy(() => import('../pages/excursion/ExcursionPage.jsx'));
-const GpxMapPage          = lazy(() => import('../pages/gpx/GpxMapPage.jsx'));
-const AdminDashboard      = lazy(() => import('../pages/dashboards/AdminDashboard.jsx'));
-const ManagerDashboard    = lazy(() => import('../pages/dashboards/ManagerDashboard.jsx'));
-const TeamPage            = lazy(() => import('../pages/manager/TeamPage.jsx'));
-const FinanceDashboard    = lazy(() => import('../pages/dashboards/FinanceDashboard.jsx'));
-const StaffDashboard      = lazy(() => import('../pages/dashboards/StaffDashboard.jsx'));
+const AttendancePage       = lazy(() => import('../pages/attendance/AttendancePage.jsx'));
+const MyPayrollPage        = lazy(() => import('../pages/payroll/MyPayrollPage.jsx'));
+const PayrollPage          = lazy(() => import('../pages/finance/PayrollPage.jsx'));
+const AccountingPage       = lazy(() => import('../pages/finance/AccountingPage.jsx'));
+const UsersPage            = lazy(() => import('../pages/admin/UsersPage.jsx'));
+const ProjectsPage         = lazy(() => import('../pages/projects/ProjectsPage.jsx'));
+const KanbanPage           = lazy(() => import('../pages/projects/KanbanPage.jsx'));
+const MyTasksPage          = lazy(() => import('../pages/projects/MyTasksPage.jsx'));
+const LeavePage            = lazy(() => import('../pages/leave/LeavePage.jsx'));
+const LeaveManagementPage  = lazy(() => import('../pages/leave/LeaveManagementPage.jsx'));
+const CalendarPage         = lazy(() => import('../pages/calendar/CalendarPage.jsx'));
+const NotificationsPage    = lazy(() => import('../pages/notifications/NotificationsPage.jsx'));
+const ExcursionPage        = lazy(() => import('../pages/excursion/ExcursionPage.jsx'));
+const GpxMapPage           = lazy(() => import('../pages/gpx/GpxMapPage.jsx'));
+const AdminDashboard       = lazy(() => import('../pages/dashboards/AdminDashboard.jsx'));
+const ManagerDashboard     = lazy(() => import('../pages/dashboards/ManagerDashboard.jsx'));
+const TeamPage             = lazy(() => import('../pages/manager/TeamPage.jsx'));
+const FinanceDashboard     = lazy(() => import('../pages/dashboards/FinanceDashboard.jsx'));
+const StaffDashboard       = lazy(() => import('../pages/dashboards/StaffDashboard.jsx'));
+const SuperAdminDashboard  = lazy(() => import('../pages/dashboards/SuperAdminDashboard.jsx'));
+const TeamsPage            = lazy(() => import('../pages/superadmin/TeamsPage.jsx'));
 
 const PERMISSION_DEFAULT_ROUTES = {
-  admin:   '/admin/dashboard',
-  manager: '/manager/dashboard',
-  finance: '/finance/dashboard',
-  staff:   '/staff/dashboard',
+  admin:       '/admin/dashboard',
+  coordinator: '/manager/dashboard',
+  manager:     '/manager/dashboard', // legacy fallback
+  finance:     '/finance/dashboard',
+  staff:       '/staff/dashboard',
+  volunteer:   '/staff/dashboard',
+  viewer:      '/staff/dashboard',
 };
 
 const RoleRedirect = () => {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
+  if (isSuperAdmin) return <Navigate to="/superadmin/dashboard" replace />;
   const target = PERMISSION_DEFAULT_ROUTES[user?.permissionLevel] || '/login';
   return <Navigate to={target} replace />;
 };
 
-const AppRouter = () => (
-  <BrowserRouter>
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-gray-400">Loading…</div>}>
-    <Routes>
+// Inner component so it can read activeTeam from context (BrowserRouter must be a parent)
+const TeamScopedRoutes = () => {
+  const { activeTeam } = useAuth();
+
+  return (
+    <Routes key={activeTeam?._id || 'no-team'}>
       {/* Public */}
       <Route path="/login" element={<Login />} />
       <Route path="/unauthorized" element={<div className="flex items-center justify-center min-h-screen text-gray-600 text-lg">403 — Access Denied</div>} />
@@ -61,8 +69,14 @@ const AppRouter = () => (
         <Route path="/gpx"             element={<GpxMapPage />} />
       </Route>
 
-      {/* Leave management — manager and admin */}
-      <Route element={<ProtectedRoute allowedRoles={['manager', 'admin']} />}>
+      {/* Super Admin */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
+        <Route path="/superadmin/teams"     element={<TeamsPage />} />
+      </Route>
+
+      {/* Leave management — coordinator and admin */}
+      <Route element={<ProtectedRoute allowedRoles={['coordinator', 'manager', 'admin']} />}>
         <Route path="/leave/manage"  element={<LeaveManagementPage />} />
         <Route path="/excursions"    element={<ExcursionPage />} />
       </Route>
@@ -79,11 +93,11 @@ const AppRouter = () => (
         <Route path="/admin/users"     element={<UsersPage />} />
       </Route>
 
-      {/* Manager */}
-      <Route element={<ProtectedRoute allowedRoles={['manager', 'admin']} />}>
+      {/* Coordinator / Manager */}
+      <Route element={<ProtectedRoute allowedRoles={['coordinator', 'manager', 'admin']} />}>
         <Route path="/manager/team" element={<TeamPage />} />
       </Route>
-      <Route element={<ProtectedRoute allowedRoles={['manager']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['coordinator', 'manager']} />}>
         <Route path="/manager/dashboard" element={<ManagerDashboard />} />
       </Route>
 
@@ -92,14 +106,21 @@ const AppRouter = () => (
         <Route path="/finance/dashboard" element={<FinanceDashboard />} />
       </Route>
 
-      {/* Staff */}
-      <Route element={<ProtectedRoute allowedRoles={['staff']} />}>
+      {/* Staff / volunteer / viewer */}
+      <Route element={<ProtectedRoute allowedRoles={['staff', 'volunteer', 'viewer']} />}>
         <Route path="/staff/dashboard" element={<StaffDashboard />} />
       </Route>
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+  );
+};
+
+const AppRouter = () => (
+  <BrowserRouter>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-gray-400">Loading…</div>}>
+      <TeamScopedRoutes />
     </Suspense>
   </BrowserRouter>
 );

@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { createHash } from 'crypto';
 
-export const PERMISSION_LEVELS = ['admin', 'manager', 'finance', 'staff'];
+export const PERMISSION_LEVELS = ['admin', 'finance', 'volunteer', 'staff', 'coordinator', 'viewer'];
 
 const userSchema = new mongoose.Schema(
   {
@@ -63,6 +63,15 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 1.5,
       min: [1, 'Multiplier must be >= 1'],
+    },
+    isSuperAdmin: {
+      type: Boolean,
+      default: false,
+    },
+    salaryFromTeam: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Team',
+      default: null,
     },
     isActive: {
       type: Boolean,

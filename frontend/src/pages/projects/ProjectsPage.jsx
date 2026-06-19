@@ -4,6 +4,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import CreateProjectModal from '../../components/projects/CreateProjectModal.jsx';
 import api from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
+
 import { fmtBSDate } from '../../utils/nepaliDate.js';
 
 const STATUS_BADGE = {
@@ -57,7 +58,7 @@ const ProjectCard = ({ project, onClick }) => {
 const STATUSES = ['All', 'Planning', 'Active', 'Completed'];
 
 const ProjectsPage = () => {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -65,7 +66,7 @@ const ProjectsPage = () => {
   const [search,   setSearch]   = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
-  const canCreate = ['manager', 'admin'].includes(user?.permissionLevel);
+  const canCreate = isSuperAdmin || ['coordinator', 'admin'].includes(user?.permissionLevel);
 
   useEffect(() => {
     api.get('/projects')

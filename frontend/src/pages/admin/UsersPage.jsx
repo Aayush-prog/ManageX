@@ -37,13 +37,17 @@ const PasswordInput = ({ value, onChange, placeholder = 'Min 8 characters', ...p
   );
 };
 
-const PERMISSION_LEVELS = ['admin', 'manager', 'finance', 'staff'];
+const PERMISSION_LEVELS = ['admin', 'coordinator', 'finance', 'volunteer', 'staff', 'viewer'];
 
 const PERMISSION_BADGE = {
-  admin:   'bg-brand-50 text-brand-700',
-  manager: 'bg-blue-50 text-blue-700',
-  finance: 'bg-green-50 text-green-700',
-  staff:   'bg-gray-100 text-gray-600',
+  admin:       'bg-brand-50 text-brand-700',
+  coordinator: 'bg-blue-50 text-blue-700',
+  finance:     'bg-green-50 text-green-700',
+  staff:       'bg-gray-100 text-gray-600',
+  volunteer:   'bg-purple-50 text-purple-700',
+  viewer:      'bg-gray-50 text-gray-500',
+  // legacy
+  manager:     'bg-blue-50 text-blue-700',
 };
 
 
@@ -230,29 +234,152 @@ export const ChangePasswordModal = ({ onClose }) => {
   );
 };
 
+// ── Edit User Modal ───────────────────────────────────────────────────────────
+
+const EditUserModal = ({ user, onClose, onUpdated }) => {
+  const [form,   setForm]   = useState({
+    name:            user.name,
+    email:           user.email,
+    role:            user.role,
+    permissionLevel: user.permissionLevel,
+    monthlySalary:   user.monthlySalary ?? 0,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error,  setError]  = useState('');
+  const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.email || !form.role) { setError('Name, email, and job title are required'); return; }
+    setSaving(true); setError('');
+    try {
+      const payload = { ...form, monthlySalary: Number(form.monthlySalary) || 0 };
+      const { data } = await api.patch(`/users/${user._id}`, payload);
+      onUpdated(data.data); onClose();
+    } catch (err) { setError(err.response?.data?.message ?? 'Failed to update user'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-gray-800">Edit User — {user.name}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+        </div>
+        <form onSubmit={submit} className="px-6 py-5 space-y-4">
+          <div>
+            <label className={labelCls}>Full Name *</label>
+            <input className={inputCls} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Full name" />
+          </div>
+          <div>
+            <label className={labelCls}>Email *</label>
+            <input type="email" className={inputCls} value={form.email} onChange={(e) => set('email', e.target.value)} />
+          </div>
+          <div>
+            <label className={labelCls}>Job Title *</label>
+            <input className={inputCls} value={form.role} onChange={(e) => set('role', e.target.value)} placeholder="e.g. Videographer, IT" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Permission Level</label>
+              <select className={inputCls} value={form.permissionLevel} onChange={(e) => set('permissionLevel', e.target.value)}>
+                {PERMISSION_LEVELS.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Monthly Salary (Rs.)</label>
+              <input type="number" min="0" className={inputCls} value={form.monthlySalary} onChange={(e) => set('monthlySalary', e.target.value)} />
+            </div>
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={onClose} className="text-sm px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-primary text-sm disabled:opacity-50">{saving ? 'Saving…' : 'Save Changes'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ── Salary From Team Modal ────────────────────────────────────────────────────
+
+const SalaryFromTeamModal = ({ user, teams, onClose, onUpdated }) => {
+  const [teamId,  setTeamId]  = useState(user.salaryFromTeam?._id || user.salaryFromTeam || '');
+  const [saving,  setSaving]  = useState(false);
+  const [error,   setError]   = useState('');
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setSaving(true); setError('');
+    try {
+      const { data } = await api.patch(`/users/${user._id}/salary-from-team`, { salaryFromTeam: teamId || null });
+      onUpdated(data.data); onClose();
+    } catch (err) { setError(err.response?.data?.message ?? 'Failed to update'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-gray-800">Salary From Team — {user.name}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+        </div>
+        <form onSubmit={submit} className="px-6 py-5 space-y-4">
+          <div>
+            <label className={labelCls}>Team that pays this user's salary</label>
+            <select className={inputCls} value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+              <option value="">— No team (not in payroll) —</option>
+              {teams.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+            </select>
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={onClose} className="text-sm px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-primary text-sm disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const UsersPage = () => {
-  const [users,       setUsers]       = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [showCreate,  setShowCreate]  = useState(false);
-  const [resetTarget, setResetTarget] = useState(null);
-  const [search,      setSearch]      = useState('');
+  const [users,            setUsers]            = useState([]);
+  const [teams,            setTeams]            = useState([]);
+  const [loading,          setLoading]          = useState(true);
+  const [showCreate,       setShowCreate]       = useState(false);
+  const [editTarget,       setEditTarget]       = useState(null);
+  const [resetTarget,      setResetTarget]      = useState(null);
+  const [salaryTeamTarget, setSalaryTeamTarget] = useState(null);
+  const [search,           setSearch]           = useState('');
 
   useEffect(() => {
-    api.get('/users/all')
-      .then(({ data }) => setUsers(data.data ?? []))
+    Promise.all([
+      api.get('/users/all').then(r => r.data.data ?? []),
+      api.get('/teams').then(r => r.data.data ?? []),
+    ])
+      .then(([u, t]) => { setUsers(u); setTeams(t); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const handleCreated  = (user) => setUsers((prev) => [user, ...prev]);
+  const handleUpdated  = (updated) => setUsers((prev) => prev.map((u) => u._id === updated._id ? { ...u, ...updated } : u));
 
   const handleToggle   = async (id) => {
     try {
       const { data } = await api.patch(`/users/${id}/toggle-active`);
       setUsers((prev) => prev.map((u) => u._id === id ? { ...u, isActive: data.data.isActive } : u));
     } catch { /* ignore */ }
+  };
+
+  const handleSalaryTeamUpdated = (updated) => {
+    setUsers((prev) => prev.map((u) => u._id === updated._id ? { ...u, salaryFromTeam: updated.salaryFromTeam } : u));
   };
 
   const filtered = users.filter((u) =>
@@ -310,6 +437,7 @@ const UsersPage = () => {
                   <th className="text-left px-4 py-3">Job Title</th>
                   <th className="text-left px-4 py-3">Access</th>
                   <th className="text-right px-4 py-3">Salary</th>
+                  <th className="text-left px-4 py-3">Salary From</th>
                   <th className="text-left px-4 py-3">Status</th>
                   <th className="text-left px-4 py-3">Actions</th>
                 </tr>
@@ -328,12 +456,28 @@ const UsersPage = () => {
                     <td className="px-4 py-3 text-gray-500">{u.email}</td>
                     <td className="px-4 py-3 text-gray-600 capitalize">{u.role}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${PERMISSION_BADGE[u.permissionLevel] ?? 'bg-gray-100 text-gray-600'}`}>
-                        {u.permissionLevel}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {u.isSuperAdmin && (
+                          <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-yellow-50 text-yellow-700">
+                            Super Admin
+                          </span>
+                        )}
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${PERMISSION_BADGE[u.permissionLevel] ?? 'bg-gray-100 text-gray-600'}`}>
+                          {u.permissionLevel}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right text-gray-700">
                       Rs. {(u.monthlySalary ?? 0).toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-4 py-3">
+                      {u.salaryFromTeam ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-medium">
+                          {u.salaryFromTeam?.name || '—'}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">none</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${u.isActive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
@@ -341,12 +485,24 @@ const UsersPage = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          onClick={() => setEditTarget(u)}
+                          className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                        >
+                          Edit
+                        </button>
                         <button
                           onClick={() => setResetTarget(u)}
                           className="text-xs px-2 py-1 bg-gray-50 text-gray-600 rounded hover:bg-gray-100 transition-colors"
                         >
                           Reset PW
+                        </button>
+                        <button
+                          onClick={() => setSalaryTeamTarget(u)}
+                          className="text-xs px-2 py-1 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-colors"
+                        >
+                          Salary Team
                         </button>
                         <button
                           onClick={() => handleToggle(u._id)}
@@ -369,8 +525,10 @@ const UsersPage = () => {
         </div>
       </div>
 
-      {showCreate  && <CreateUserModal onClose={() => setShowCreate(false)} onCreated={handleCreated} />}
-      {resetTarget && <SetPasswordModal user={resetTarget} onClose={() => setResetTarget(null)} />}
+      {showCreate       && <CreateUserModal onClose={() => setShowCreate(false)} onCreated={handleCreated} />}
+      {editTarget       && <EditUserModal user={editTarget} onClose={() => setEditTarget(null)} onUpdated={handleUpdated} />}
+      {resetTarget      && <SetPasswordModal user={resetTarget} onClose={() => setResetTarget(null)} />}
+      {salaryTeamTarget && <SalaryFromTeamModal user={salaryTeamTarget} teams={teams} onClose={() => setSalaryTeamTarget(null)} onUpdated={handleSalaryTeamUpdated} />}
     </DashboardLayout>
   );
 };

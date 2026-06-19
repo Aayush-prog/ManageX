@@ -6,18 +6,19 @@ import Payroll        from '../models/Payroll.js';
 
 // ── Expenses ──────────────────────────────────────────────────────────────────
 
-export const addExpenseService = async (data, userId) => {
-  const expense = await Expense.create({ ...data, createdBy: userId });
+export const addExpenseService = async (data, userId, teamId) => {
+  const expense = await Expense.create({ ...data, createdBy: userId, team: teamId || null });
   return expense.populate([
     { path: 'createdBy', select: 'name' },
     { path: 'project',   select: 'name' },
   ]);
 };
 
-export const getExpensesService = async ({ month, startFrom, startTo, status, projectId } = {}) => {
+export const getExpensesService = async ({ month, startFrom, startTo, status, projectId, teamId } = {}) => {
   const filter = {};
   if (status)    filter.status  = status;
   if (projectId) filter.project = projectId;
+  if (teamId)    filter.team    = teamId;
   if (startFrom && startTo) {
     filter.date = { $gte: new Date(startFrom), $lte: new Date(startTo + 'T23:59:59') };
   } else if (month) {
@@ -65,17 +66,19 @@ export const deleteExpenseService = async (id) => {
 
 // ── Bills ─────────────────────────────────────────────────────────────────────
 
-export const addBillService = async (data, userId) => {
-  const payload = { ...data, createdBy: userId };
+export const addBillService = async (data, userId, teamId) => {
+  const payload = { ...data, createdBy: userId, team: teamId || null };
   if (!payload.project) delete payload.project;
   const bill = await Bill.create(payload);
   return bill.populate([{ path: 'createdBy', select: 'name' }, { path: 'project', select: 'name' }]);
 };
 
-export const getBillsService = async () =>
-  Bill.find().sort({ dueDate: 1 })
+export const getBillsService = async (teamId) => {
+  const filter = teamId ? { team: teamId } : {};
+  return Bill.find(filter).sort({ dueDate: 1 })
     .populate('createdBy', 'name')
     .populate('project',   'name');
+};
 
 export const markBillPaidService = async (billId) => {
   const bill = await Bill.findById(billId);

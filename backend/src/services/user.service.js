@@ -4,6 +4,7 @@ import User from '../models/User.js';
 export const listAllUsersService = async () =>
   User.find()
     .select('-password -refreshTokenHash')
+    .populate('salaryFromTeam', 'name')
     .sort({ name: 1 })
     .lean();
 
@@ -63,6 +64,50 @@ export const changeOwnPasswordService = async (userId, currentPassword, newPassw
   }
   user.password = newPassword;
   await user.save();
+};
+
+// Update which team a user's salary is drawn from
+export const updateSalaryFromTeamService = async (userId, salaryFromTeam) => {
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { salaryFromTeam: salaryFromTeam || null },
+    { new: true }
+  ).populate('salaryFromTeam', 'name');
+  if (!user) {
+    const err = new Error('User not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  return user;
+};
+
+// Update user profile (Super Admin only)
+export const updateUserService = async (userId, { name, email, role, permissionLevel, monthlySalary }) => {
+  const ALLOWED = {};
+  if (name           !== undefined) ALLOWED.name           = name;
+  if (email          !== undefined) ALLOWED.email          = email.toLowerCase().trim();
+  if (role           !== undefined) ALLOWED.role           = role;
+  if (permissionLevel !== undefined) ALLOWED.permissionLevel = permissionLevel;
+  if (monthlySalary  !== undefined) ALLOWED.monthlySalary  = Number(monthlySalary) || 0;
+
+  if (ALLOWED.email) {
+    const existing = await User.findOne({ email: ALLOWED.email, _id: { $ne: userId } });
+    if (existing) {
+      const err = new Error('Email already in use');
+      err.statusCode = 409;
+      throw err;
+    }
+  }
+
+  const user = await User.findByIdAndUpdate(userId, ALLOWED, { new: true, runValidators: true })
+    .select('-password -refreshTokenHash')
+    .populate('salaryFromTeam', 'name');
+  if (!user) {
+    const err = new Error('User not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  return user;
 };
 
 // Toggle isActive (CEO only)

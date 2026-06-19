@@ -12,11 +12,11 @@ router.get  ('/quota', ctrl.getQuota);
 router.get  ('/my',    ctrl.getMyLeaves);
 router.post ('/',      ctrl.requestLeave);
 
-// All leaves — manager and admin only
-router.get  ('/all', allowRoles('manager', 'admin'), ctrl.getAllLeaves);
+// All leaves — coordinator and admin only
+router.get  ('/all', allowRoles('coordinator', 'admin'), ctrl.getAllLeaves);
 
-// Approve / Reject — manager and admin only
-router.patch('/:id/approve', allowRoles('manager', 'admin'), ctrl.approveLeave);
-router.patch('/:id/reject',  allowRoles('manager', 'admin'), ctrl.rejectLeave);
+// Approve / Reject — coordinator and admin only
+router.patch('/:id/approve', allowRoles('coordinator', 'admin'), ctrl.approveLeave);
+router.patch('/:id/reject',  allowRoles('coordinator', 'admin'), ctrl.rejectLeave);
 
 export default router;

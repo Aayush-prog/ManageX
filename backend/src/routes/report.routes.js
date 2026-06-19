@@ -4,7 +4,7 @@ import { getUserReport } from '../controllers/report.controller.js';
 
 const router = Router();
 router.use(authenticate);
-router.use(allowRoles('manager', 'admin'));
+router.use(allowRoles('coordinator', 'admin'));
 
 router.get('/user/:id', getUserReport);
 

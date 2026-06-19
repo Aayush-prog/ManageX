@@ -12,6 +12,7 @@ const buildTokenPayload = (user) => ({
   id: user._id,
   role: user.role,
   permissionLevel: user.permissionLevel,
+  isSuperAdmin: user.isSuperAdmin || false,
   name: user.name,
   email: user.email,
 });

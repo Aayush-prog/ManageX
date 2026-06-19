@@ -28,7 +28,10 @@ const checkOrganizerContacts = async () => {
     if (!events.length) return;
 
     const recipients = await User.find({
-      permissionLevel: { $in: ['finance', 'manager', 'admin'] },
+      $or: [
+        { permissionLevel: { $in: ['finance', 'coordinator', 'admin'] } },
+        { isSuperAdmin: true }
+      ],
     }).select('name email _id permissionLevel').lean();
 
     if (!recipients.length) return;

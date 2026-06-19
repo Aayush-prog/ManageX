@@ -16,9 +16,9 @@ router.use(authenticate);
 
 router.get  ('/config',    (_, res) => res.json({ trackFrom: env.ATTENDANCE_TRACK_FROM }));
 router.get  ('/me',        getMyAttendance);
-router.get  ('/team',      allowRoles('manager', 'admin'), getTeamAttendance);
-router.get  ('/all',       allowRoles('admin'),            getAllAttendance);
-router.post ('/',          allowRoles('manager', 'admin'), createAttendance);
-router.patch('/:id',       allowRoles('manager', 'admin'), editAttendance);
+router.get  ('/team',      allowRoles('coordinator', 'admin'), getTeamAttendance);
+router.get  ('/all',       allowRoles('coordinator', 'admin'), getAllAttendance);
+router.post ('/',          allowRoles('coordinator', 'admin'), createAttendance);
+router.patch('/:id',       allowRoles('coordinator', 'admin'), editAttendance);
 
 export default router;

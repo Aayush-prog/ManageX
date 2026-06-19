@@ -17,8 +17,9 @@ const TASK_STATUSES = ['Backlog', 'Todo', 'InProgress', 'Review', 'Done'];
 
 // ── Projects ──────────────────────────────────────────────────────────────────
 
-export const getProjectsService = async (userId, permissionLevel) => {
-  const query = ['manager', 'admin'].includes(permissionLevel) ? {} : { members: userId };
+export const getProjectsService = async (userId, permissionLevel, isSuperAdmin, teamId) => {
+  const query = (isSuperAdmin || ['coordinator', 'admin'].includes(permissionLevel)) ? {} : { members: userId };
+  if (teamId) query.team = teamId;
 
   const projects = await Project.find(query)
     .populate('members',   'name email role')
@@ -52,11 +53,19 @@ export const getProjectsService = async (userId, permissionLevel) => {
   });
 };
 
-export const createProjectService = async (data, userId) => {
-  const managers = await User.find({ permissionLevel: 'manager' }).select('_id').lean();
-  const managerIds = managers.map((m) => m._id.toString());
-  const memberSet = new Set([...(data.members ?? []).map(String), ...managerIds]);
-  const project = await Project.create({ ...data, members: [...memberSet], createdBy: userId });
+export const createProjectService = async (data, userId, teamId) => {
+  let coordinatorIds = [];
+  if (teamId) {
+    const memberships = await import('../models/TeamMembership.js').then((m) =>
+      m.default.find({ team: teamId, role: 'coordinator' }).select('user').lean()
+    );
+    coordinatorIds = memberships.map((m) => m.user.toString());
+  } else {
+    const coordinators = await User.find({ permissionLevel: 'coordinator' }).select('_id').lean();
+    coordinatorIds = coordinators.map((m) => m._id.toString());
+  }
+  const memberSet = new Set([...(data.members ?? []).map(String), ...coordinatorIds]);
+  const project = await Project.create({ ...data, members: [...memberSet], createdBy: userId, team: teamId || null });
   await project.populate([
     { path: 'members',   select: 'name email' },
     { path: 'createdBy', select: 'name' },
@@ -80,7 +89,7 @@ export const createProjectService = async (data, userId) => {
   return project;
 };
 
-export const getProjectByIdService = async (projectId, userId, permissionLevel) => {
+export const getProjectByIdService = async (projectId, userId, permissionLevel, isSuperAdmin) => {
   const project = await Project.findById(projectId)
     .populate('members',   'name email role')
     .populate('createdBy', 'name')
@@ -92,8 +101,8 @@ export const getProjectByIdService = async (projectId, userId, permissionLevel) 
     throw err;
   }
 
-  // Access: managers/admin always; others must be a member
-  if (!['manager', 'admin'].includes(permissionLevel)) {
+  // Access: coordinator/admin/super admin always; others must be a member
+  if (!isSuperAdmin && !['coordinator', 'admin'].includes(permissionLevel)) {
     const isMember = project.members.some((m) => m._id.toString() === userId);
     if (!isMember) {
       const err = new Error('Access denied');
@@ -121,7 +130,7 @@ export const updateProjectService = async (projectId, data) => {
     Object.entries(data).filter(([k]) => ALLOWED.includes(k))
   );
   if (filtered.members !== undefined) {
-    const managers = await User.find({ permissionLevel: 'manager' }).select('_id').lean();
+    const managers = await User.find({ permissionLevel: 'coordinator' }).select('_id').lean();
     const managerIds = managers.map((m) => m._id.toString());
     const memberSet = new Set([...filtered.members.map(String), ...managerIds]);
     filtered.members = [...memberSet];
@@ -248,12 +257,12 @@ export const editCommentService = async (taskId, commentId, userId, text) => {
   return Task.findById(taskId).populate('comments.user', 'name');
 };
 
-export const deleteCommentService = async (taskId, commentId, userId, permissionLevel) => {
+export const deleteCommentService = async (taskId, commentId, userId, permissionLevel, isSuperAdmin) => {
   const task = await Task.findById(taskId);
   if (!task) throw Object.assign(new Error('Task not found'), { statusCode: 404 });
   const comment = task.comments.id(commentId);
   if (!comment) throw Object.assign(new Error('Comment not found'), { statusCode: 404 });
-  if (!['manager', 'admin'].includes(permissionLevel) && comment.user.toString() !== userId)
+  if (!isSuperAdmin && !['coordinator', 'admin'].includes(permissionLevel) && comment.user.toString() !== userId)
     throw Object.assign(new Error('Not authorized'), { statusCode: 403 });
   comment.deleteOne();
   await task.save();
@@ -313,13 +322,19 @@ export const addCommentService = async (taskId, userId, text) => {
   return task;
 };
 
-export const getMyTasksService = async (userId) =>
-  Task.find({ assignedTo: userId })
+export const getMyTasksService = async (userId, teamId) => {
+  const filter = { assignedTo: userId };
+  if (teamId) {
+    const projectIds = await Project.find({ team: teamId }).distinct('_id');
+    filter.project = { $in: projectIds };
+  }
+  return Task.find(filter)
     .populate('project',       'name status _id')
     .populate('assignedTo',    'name email role')
     .populate('comments.user', 'name')
     .sort({ dueDate: 1 })
     .lean();
+};
 
 export const deleteTaskService = async (taskId) => {
   const task = await Task.findById(taskId).lean();

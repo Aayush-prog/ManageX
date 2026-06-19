@@ -13,6 +13,7 @@ const expenseSchema = new mongoose.Schema({
   date:       { type: Date, default: Date.now },
   notes:      { type: String, trim: true },
   attachment: { type: String },
+  team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },
 }, { timestamps: true });
 
 expenseSchema.index({ status: 1, date: -1 });    // summary: { status, date range }
