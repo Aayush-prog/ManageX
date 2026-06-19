@@ -1,8 +1,10 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext.jsx';
+import { usePush } from '../hooks/usePush.js';
 
 const ProtectedRoute = ({ allowedRoles }) => {
   const { isAuthenticated, user, isSuperAdmin, activeTeamRole } = useAuth();
+  usePush();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;

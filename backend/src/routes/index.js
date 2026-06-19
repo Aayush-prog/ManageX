@@ -13,6 +13,7 @@ import calendarRoutes       from './calendar.routes.js';
 import excursionRoutes      from './excursion.routes.js';
 import gpxRoutes            from './gpx.routes.js';
 import teamRoutes           from './team.routes.js';
+import pushRoutes           from './push.routes.js';
 
 const router = Router();
 
@@ -34,5 +35,6 @@ router.use('/calendar',       calendarRoutes);
 router.use('/excursions',     excursionRoutes);
 router.use('/gpx',            gpxRoutes);
 router.use('/teams',          teamRoutes);
+router.use('/push',           pushRoutes);
 
 export default router;

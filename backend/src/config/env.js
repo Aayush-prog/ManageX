@@ -32,6 +32,10 @@ const env = {
   SMTP_USER:      process.env.SMTP_USER      || '',
   SMTP_PASS:      process.env.SMTP_PASS      || '',
   SMTP_FROM_NAME: process.env.SMTP_FROM_NAME || 'ManageX',
+  // Web Push (VAPID)
+  VAPID_PUBLIC_KEY:  process.env.VAPID_PUBLIC_KEY  || '',
+  VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || '',
+  VAPID_SUBJECT:     process.env.VAPID_SUBJECT     || 'mailto:hello@nepalmarathon.run',
 };
 
 const required = [
