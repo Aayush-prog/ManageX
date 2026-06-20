@@ -20,6 +20,7 @@ const EmployeeRow = ({ user: u, onSaved }) => {
   const [salary,   setSalary]   = useState(u.monthlySalary);
   const [empPct,   setEmpPct]   = useState(u.ssfEmployeePercent);
   const [emrPct,   setEmrPct]   = useState(u.ssfEmployerPercent);
+  const [tdsPct,   setTdsPct]   = useState(u.tdsPercent ?? 1);
   const [saving,   setSaving]   = useState(false);
 
   const save = async () => {
@@ -28,6 +29,7 @@ const EmployeeRow = ({ user: u, onSaved }) => {
       await Promise.all([
         api.patch(`/users/update-salary/${u._id}`, { monthlySalary: Number(salary) }),
         api.patch(`/users/update-ssf/${u._id}`,    { ssfEmployeePercent: Number(empPct), ssfEmployerPercent: Number(emrPct) }),
+        api.patch(`/users/update-tds/${u._id}`,    { tdsPercent: Number(tdsPct) }),
       ]);
       onSaved();
       setEditing(false);
@@ -42,10 +44,11 @@ const EmployeeRow = ({ user: u, onSaved }) => {
     setSalary(u.monthlySalary);
     setEmpPct(u.ssfEmployeePercent);
     setEmrPct(u.ssfEmployerPercent);
+    setTdsPct(u.tdsPercent ?? 1);
     setEditing(false);
   };
 
-  const inputCls = 'w-24 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
+  const inputCls = 'w-20 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
 
   return (
     <tr className="hover:bg-gray-50 transition-colors">
@@ -65,6 +68,11 @@ const EmployeeRow = ({ user: u, onSaved }) => {
         {editing
           ? <input type="number" value={emrPct} onChange={(e) => setEmrPct(e.target.value)} className={inputCls} min="0" max="100" step="0.1" />
           : <span className="text-gray-700">{u.ssfEmployerPercent}%</span>}
+      </td>
+      <td className="px-4 py-3">
+        {editing
+          ? <input type="number" value={tdsPct} onChange={(e) => setTdsPct(e.target.value)} className={inputCls} min="0" max="100" step="0.1" />
+          : <span className="text-gray-700">{u.tdsPercent ?? 1}%</span>}
       </td>
       <td className="px-4 py-3">
         {editing ? (
@@ -174,6 +182,7 @@ const PayrollPage = () => {
   const totalNet     = records.reduce((s, r) => s + (r.finalPayableSalary ?? 0), 0);
   const totalEmpSSF  = records.reduce((s, r) => s + (r.employeeSSF ?? 0), 0);
   const totalEmrSSF  = records.reduce((s, r) => s + (r.employerSSF ?? 0), 0);
+  const totalTDS     = records.reduce((s, r) => s + (r.tds ?? 0), 0);
   const pendingCount = records.filter((r) => r.status === 'Pending').length;
 
   return (
@@ -228,11 +237,12 @@ const PayrollPage = () => {
 
             {/* Summary cards */}
             {records.length > 0 && (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 {[
                   { label: 'Total Net Payable', value: fmtNPR(totalNet),    accent: 'border-green-400' },
                   { label: 'Employee SSF',       value: fmtNPR(totalEmpSSF), accent: 'border-orange-400' },
                   { label: 'Employer SSF',       value: fmtNPR(totalEmrSSF), accent: 'border-blue-400' },
+                  { label: 'Total TDS',          value: fmtNPR(totalTDS),    accent: 'border-red-400' },
                   { label: 'Pending Payouts',    value: pendingCount,         accent: 'border-yellow-400' },
                 ].map(({ label, value, accent }) => (
                   <div key={label} className={`stat-card border-l-4 ${accent}`}>
@@ -256,7 +266,7 @@ const PayrollPage = () => {
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                       <tr>
-                        {['Name', 'Role', 'Salary', 'Emp SSF (11%)', 'Emr SSF (20%)', 'Total SSF', 'Net Pay', 'Status', 'Paid On', ''].map((h) => (
+                        {['Name', 'Role', 'Salary', 'Emp SSF (11%)', 'Emr SSF (20%)', 'Total SSF', 'TDS', 'Net Pay', 'Status', 'Paid On', ''].map((h) => (
                           <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                             {h}
                           </th>
@@ -272,6 +282,7 @@ const PayrollPage = () => {
                           <td className="px-4 py-3 text-orange-600">{fmtNPR(r.employeeSSF)}</td>
                           <td className="px-4 py-3 text-blue-600">{fmtNPR(r.employerSSF)}</td>
                           <td className="px-4 py-3 text-gray-600 font-medium">{fmtNPR(r.totalSSF)}</td>
+                          <td className="px-4 py-3 text-red-500">{fmtNPR(r.tds ?? 0)} <span className="text-gray-400 text-xs">({r.tdsPercent ?? 1}%)</span></td>
                           <td className="px-4 py-3 text-green-600 font-semibold">{fmtNPR(r.finalPayableSalary)}</td>
                           <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
                           <td className="px-4 py-3 text-gray-400 text-xs">{fmtDate(r.paidAt)}</td>
@@ -305,7 +316,7 @@ const PayrollPage = () => {
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 border-b border-gray-100">
                     <tr>
-                      {['Name', 'Role', 'Monthly Salary', 'Emp SSF %', 'Emr SSF %', ''].map((h) => (
+                      {['Name', 'Role', 'Monthly Salary', 'Emp SSF %', 'Emr SSF %', 'TDS %', ''].map((h) => (
                         <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                           {h}
                         </th>

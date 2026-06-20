@@ -18,6 +18,8 @@ const payrollSchema = new mongoose.Schema(
     employeeSSF:        { type: Number, required: true },
     employerSSF:        { type: Number, required: true },
     totalSSF:           { type: Number, required: true },
+    tdsPercent:         { type: Number, default: 1 },
+    tds:                { type: Number, default: 0 },
     finalPayableSalary: { type: Number, required: true },
     status: {
       type: String,

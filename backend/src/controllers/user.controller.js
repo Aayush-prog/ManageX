@@ -2,6 +2,7 @@ import {
   listUsersService,
   updateSalaryService,
   updateSSFService,
+  updateTDSService,
 } from '../services/payroll.service.js';
 
 import {
@@ -44,6 +45,15 @@ export const updateSalary = async (req, res, next) => {
   try {
     const { monthlySalary } = req.body;
     const user = await updateSalaryService(req.params.id, monthlySalary);
+    return res.json({ success: true, data: user });
+  } catch (err) { next(err); }
+};
+
+// PATCH /api/users/update-tds/:id   [finance, admin]
+export const updateTDS = async (req, res, next) => {
+  try {
+    const { tdsPercent } = req.body;
+    const user = await updateTDSService(req.params.id, Number(tdsPercent));
     return res.json({ success: true, data: user });
   } catch (err) { next(err); }
 };

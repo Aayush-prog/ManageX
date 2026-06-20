@@ -7,6 +7,7 @@ import {
   updateUser,
   updateSalary,
   updateSSF,
+  updateTDS,
   adminSetPassword,
   changePassword,
   toggleActive,
@@ -23,6 +24,7 @@ router.patch('/change-password',     changePassword);
 router.get ('/',                     allowRoles('finance', 'admin', 'coordinator'), listUsers);
 router.patch('/update-salary/:id',   allowRoles('finance', 'admin'),               updateSalary);
 router.patch('/update-ssf/:id',      allowRoles('finance', 'admin'),               updateSSF);
+router.patch('/update-tds/:id',      allowRoles('finance', 'admin'),               updateTDS);
 
 // Super Admin only
 router.get  ('/all',                    allowSuperAdmin(), listAllUsers);

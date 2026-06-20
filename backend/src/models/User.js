@@ -53,6 +53,11 @@ const userSchema = new mongoose.Schema(
       default: 20,
       min: [0, 'Cannot be negative'],
     },
+    tdsPercent: {
+      type: Number,
+      default: 1,
+      min: [0, 'Cannot be negative'],
+    },
     requiredHoursPerDay: {
       type: Number,
       default: 8,

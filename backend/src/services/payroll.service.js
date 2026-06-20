@@ -1,22 +1,25 @@
 import User from '../models/User.js';
 import Payroll from '../models/Payroll.js';
 import SSFAccount from '../models/SSFAccount.js';
-import TeamMembership from '../models/TeamMembership.js';
 
 const round2 = (n) => parseFloat(n.toFixed(2));
 
 const calcSSF = (user) => {
   const baseSalary  = user.monthlySalary;
   const ssfBase     = round2(baseSalary * 0.60);           // SSF applies to 60% of salary
-  const employeeSSF = round2(ssfBase * (user.ssfEmployeePercent / 100)); // 11% of ssfBase
-  const employerSSF = round2(ssfBase * (user.ssfEmployerPercent / 100)); // 20% of ssfBase
+  const employeeSSF = round2(ssfBase * (user.ssfEmployeePercent / 100));
+  const employerSSF = round2(ssfBase * (user.ssfEmployerPercent / 100));
+  const tdsPercent  = user.tdsPercent ?? 1;
+  const tds         = round2(baseSalary * (tdsPercent / 100));
   return {
     baseSalary,
     ssfBase,
     employeeSSF,
     employerSSF,
     totalSSF:           round2(employeeSSF + employerSSF),
-    finalPayableSalary: round2(baseSalary - employeeSSF),
+    tdsPercent,
+    tds,
+    finalPayableSalary: round2(baseSalary - employeeSSF - tds),
   };
 };
 
@@ -34,7 +37,7 @@ export const generatePayrollService = async (month, teamId) => {
 
   const [users, existingIds] = await Promise.all([
     User.find(userFilter).select(
-      'name email role monthlySalary ssfEmployeePercent ssfEmployerPercent salaryFromTeam'
+      'name email role monthlySalary ssfEmployeePercent ssfEmployerPercent tdsPercent salaryFromTeam'
     ),
     Payroll.distinct('user', teamId ? { month, team: teamId } : { month }),
   ]);
@@ -184,6 +187,25 @@ export const updateSalaryService = async (userId, monthlySalary) => {
   return user;
 };
 
+export const updateTDSService = async (userId, tdsPercent) => {
+  if (typeof tdsPercent !== 'number' || tdsPercent < 0) {
+    const err = new Error('Invalid TDS value');
+    err.statusCode = 400;
+    throw err;
+  }
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { tdsPercent },
+    { new: true, runValidators: true }
+  ).select('-password -refreshTokenHash');
+  if (!user) {
+    const err = new Error('User not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  return user;
+};
+
 export const updateSSFService = async (userId, ssfEmployeePercent, ssfEmployerPercent) => {
   const user = await User.findByIdAndUpdate(
     userId,
@@ -201,14 +223,10 @@ export const updateSSFService = async (userId, ssfEmployeePercent, ssfEmployerPe
 // ── Finance: list users with salary/SSF info ─────────────────────────────────
 
 export const listUsersService = async (teamId) => {
-  let userFilter = { isActive: true };
-  if (teamId) {
-    const memberships = await TeamMembership.find({ team: teamId }).select('user').lean();
-    const memberIds = memberships.map((m) => m.user);
-    userFilter._id = { $in: memberIds };
-  }
+  const userFilter = { isActive: true };
+  if (teamId) userFilter.salaryFromTeam = teamId;
   return User.find(userFilter)
-    .select('name email role monthlySalary ssfEmployeePercent ssfEmployerPercent isActive salaryFromTeam')
+    .select('name email role monthlySalary ssfEmployeePercent ssfEmployerPercent tdsPercent isActive salaryFromTeam')
     .populate('salaryFromTeam', 'name')
     .sort({ name: 1 })
     .lean();
