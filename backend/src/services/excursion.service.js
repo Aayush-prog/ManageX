@@ -32,11 +32,13 @@ const getWorkingDates = (startDate, endDate) => {
   return dates;
 };
 
-export const createExcursionService = async (topic, startDate, endDate, createdById, teamId) => {
+export const createExcursionService = async (topic, startDate, endDate, createdById, teamId, userIds) => {
   const excursion = await Excursion.create({ topic, startDate, endDate, createdBy: createdById, team: teamId || null });
 
   let users;
-  if (teamId) {
+  if (userIds && userIds.length > 0) {
+    users = await User.find({ _id: { $in: userIds }, isActive: true }).select('_id').lean();
+  } else if (teamId) {
     const memberships = await TeamMembership.find({ team: teamId }).select('user').lean();
     const memberIds   = memberships.map((m) => m.user);
     users = await User.find({ _id: { $in: memberIds }, isActive: true }).select('_id').lean();
@@ -61,9 +63,8 @@ export const createExcursionService = async (topic, startDate, endDate, createdB
         date:       dateStr,
         clockIn,
         clockOut,
-        totalHours: EXCURSION_CLOCK_OUT_HOUR - EXCURSION_CLOCK_IN_HOUR, // 5 hours
+        totalHours: EXCURSION_CLOCK_OUT_HOUR - EXCURSION_CLOCK_IN_HOUR,
         isLate:     false,
-        type:       'excursion',
         excursion:  excursion._id,
       });
       created++;

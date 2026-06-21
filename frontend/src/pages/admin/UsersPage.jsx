@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import api from '../../services/api.js';
+import { useAuth } from '../../store/AuthContext.jsx';
 
 const EyeIcon = ({ open }) => open ? (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -236,13 +237,14 @@ export const ChangePasswordModal = ({ onClose }) => {
 
 // ── Edit User Modal ───────────────────────────────────────────────────────────
 
-const EditUserModal = ({ user, onClose, onUpdated }) => {
+const EditUserModal = ({ user, onClose, onUpdated, isSuperAdmin }) => {
   const [form,   setForm]   = useState({
     name:            user.name,
     email:           user.email,
     role:            user.role,
     permissionLevel: user.permissionLevel,
     monthlySalary:   user.monthlySalary ?? 0,
+    rfid_uid:        user.rfid_uid ?? '',
   });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
@@ -254,6 +256,7 @@ const EditUserModal = ({ user, onClose, onUpdated }) => {
     setSaving(true); setError('');
     try {
       const payload = { ...form, monthlySalary: Number(form.monthlySalary) || 0 };
+      if (!isSuperAdmin) delete payload.rfid_uid;
       const { data } = await api.patch(`/users/${user._id}`, payload);
       onUpdated(data.data); onClose();
     } catch (err) { setError(err.response?.data?.message ?? 'Failed to update user'); }
@@ -292,6 +295,19 @@ const EditUserModal = ({ user, onClose, onUpdated }) => {
               <input type="number" min="0" className={inputCls} value={form.monthlySalary} onChange={(e) => set('monthlySalary', e.target.value)} />
             </div>
           </div>
+          {isSuperAdmin && (
+            <div>
+              <label className={labelCls}>RFID UID</label>
+              <input
+                className={inputCls}
+                value={form.rfid_uid}
+                onChange={(e) => set('rfid_uid', e.target.value.toUpperCase())}
+                placeholder="e.g. A1B2C3D4 (leave blank to clear)"
+                style={{ fontFamily: 'monospace' }}
+              />
+              <p className="text-xs text-gray-400 mt-1">Unique card/tag UID assigned to this user. Super admin only.</p>
+            </div>
+          )}
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex justify-end gap-3">
             <button type="button" onClick={onClose} className="text-sm px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
@@ -349,6 +365,7 @@ const SalaryFromTeamModal = ({ user, teams, onClose, onUpdated }) => {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const UsersPage = () => {
+  const { isSuperAdmin } = useAuth();
   const [users,            setUsers]            = useState([]);
   const [teams,            setTeams]            = useState([]);
   const [loading,          setLoading]          = useState(true);
@@ -438,6 +455,7 @@ const UsersPage = () => {
                   <th className="text-left px-4 py-3">Access</th>
                   <th className="text-right px-4 py-3">Salary</th>
                   <th className="text-left px-4 py-3">Salary From</th>
+                  {isSuperAdmin && <th className="text-left px-4 py-3">RFID UID</th>}
                   <th className="text-left px-4 py-3">Status</th>
                   <th className="text-left px-4 py-3">Actions</th>
                 </tr>
@@ -479,6 +497,17 @@ const UsersPage = () => {
                         <span className="text-xs text-gray-400 italic">none</span>
                       )}
                     </td>
+                    {isSuperAdmin && (
+                      <td className="px-4 py-3">
+                        {u.rfid_uid ? (
+                          <span className="text-xs font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-700 tracking-wider">
+                            {u.rfid_uid}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-300 italic">—</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${u.isActive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
                         {u.isActive ? 'Active' : 'Inactive'}
@@ -526,7 +555,7 @@ const UsersPage = () => {
       </div>
 
       {showCreate       && <CreateUserModal onClose={() => setShowCreate(false)} onCreated={handleCreated} />}
-      {editTarget       && <EditUserModal user={editTarget} onClose={() => setEditTarget(null)} onUpdated={handleUpdated} />}
+      {editTarget       && <EditUserModal user={editTarget} onClose={() => setEditTarget(null)} onUpdated={handleUpdated} isSuperAdmin={isSuperAdmin} />}
       {resetTarget      && <SetPasswordModal user={resetTarget} onClose={() => setResetTarget(null)} />}
       {salaryTeamTarget && <SalaryFromTeamModal user={salaryTeamTarget} teams={teams} onClose={() => setSalaryTeamTarget(null)} onUpdated={handleSalaryTeamUpdated} />}
     </DashboardLayout>

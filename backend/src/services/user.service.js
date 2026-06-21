@@ -82,18 +82,28 @@ export const updateSalaryFromTeamService = async (userId, salaryFromTeam) => {
 };
 
 // Update user profile (Super Admin only)
-export const updateUserService = async (userId, { name, email, role, permissionLevel, monthlySalary }) => {
+export const updateUserService = async (userId, { name, email, role, permissionLevel, monthlySalary, rfid_uid }) => {
   const ALLOWED = {};
   if (name           !== undefined) ALLOWED.name           = name;
   if (email          !== undefined) ALLOWED.email          = email.toLowerCase().trim();
   if (role           !== undefined) ALLOWED.role           = role;
   if (permissionLevel !== undefined) ALLOWED.permissionLevel = permissionLevel;
   if (monthlySalary  !== undefined) ALLOWED.monthlySalary  = Number(monthlySalary) || 0;
+  if (rfid_uid       !== undefined) ALLOWED.rfid_uid       = rfid_uid ? rfid_uid.trim().toUpperCase() : null;
 
   if (ALLOWED.email) {
     const existing = await User.findOne({ email: ALLOWED.email, _id: { $ne: userId } });
     if (existing) {
       const err = new Error('Email already in use');
+      err.statusCode = 409;
+      throw err;
+    }
+  }
+
+  if (ALLOWED.rfid_uid) {
+    const existing = await User.findOne({ rfid_uid: ALLOWED.rfid_uid, _id: { $ne: userId } });
+    if (existing) {
+      const err = new Error('RFID UID already assigned to another user');
       err.statusCode = 409;
       throw err;
     }

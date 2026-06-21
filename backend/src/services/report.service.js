@@ -1,8 +1,9 @@
-import Attendance from '../models/Attendance.js';
-import Leave      from '../models/Leave.js';
-import Payroll    from '../models/Payroll.js';
-import Task       from '../models/Task.js';
-import User       from '../models/User.js';
+import Attendance    from '../models/Attendance.js';
+import Leave         from '../models/Leave.js';
+import Payroll       from '../models/Payroll.js';
+import Task          from '../models/Task.js';
+import User          from '../models/User.js';
+import CalendarEvent from '../models/CalendarEvent.js';
 
 const SICK_QUOTA   = 7;
 const ANNUAL_QUOTA = 7;
@@ -13,7 +14,7 @@ export const getUserReportService = async (userId, { startFrom, startTo }) => {
   const endMonth   = startTo.slice(0, 7);
 
   // Run all queries in parallel
-  const [user, attRecords, leaveRecords, payrollRecords, tasks] = await Promise.all([
+  const [user, attRecords, leaveRecords, payrollRecords, tasks, holidayEvents] = await Promise.all([
     User.findById(userId).lean(),
     Attendance
       .find({ user: userId, date: { $gte: startFrom, $lte: startTo } })
@@ -32,17 +33,58 @@ export const getUserReportService = async (userId, { startFrom, startTo }) => {
       .populate('project', 'name')
       .select('title status priority dueDate project updatedAt')
       .lean(),
+    CalendarEvent
+      .find({ type: 'holiday', date: { $gte: new Date(startFrom), $lte: new Date(startTo) } })
+      .lean(),
   ]);
 
   if (!user) throw new Error('User not found');
 
   // ── Attendance ──────────────────────────────────────────────────────────────
+  const holidayDateSet = new Set(
+    holidayEvents.map((h) => {
+      const d = new Date(h.date);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    })
+  );
+
+  // Expand approved leaves into individual date strings
+  const leaveDateSet = new Set();
+  for (const l of leaveRecords) {
+    if (!['Approved', 'Pending'].includes(l.status)) continue;
+    const cur = new Date(l.startDate);
+    const end = new Date(l.endDate);
+    while (cur <= end) {
+      leaveDateSet.add(cur.toISOString().slice(0, 10));
+      cur.setDate(cur.getDate() + 1);
+    }
+  }
+
+  // Count working days (Sun-Fri) excluding holidays
+  const workingDays = (() => {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    const cur = new Date(startFrom);
+    const end = new Date(Math.min(new Date(startTo), today));
+    let count = 0;
+    while (cur <= end) {
+      const ds = cur.toISOString().slice(0, 10);
+      if (cur.getDay() !== 6 && !holidayDateSet.has(ds)) count++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return count;
+  })();
+
   const totalHours = parseFloat(attRecords.reduce((s, r) => s + (r.totalHours ?? 0), 0).toFixed(2));
   const attSummary = {
     daysPresent:    attRecords.length,
     daysLate:       attRecords.filter((r) => r.isLate).length,
     totalHours,
     avgHoursPerDay: attRecords.length ? parseFloat((totalHours / attRecords.length).toFixed(2)) : 0,
+    workingDays,
+    daysAbsent:     Math.max(0, workingDays - attRecords.length - leaveDateSet.size),
+    daysOnLeave:    leaveDateSet.size,
+    holidays:       holidayDateSet.size,
   };
 
   // ── Leaves ──────────────────────────────────────────────────────────────────

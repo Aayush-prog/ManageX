@@ -7,11 +7,9 @@ const attendanceSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
-    // Local date string "YYYY-MM-DD" in configured timezone
     date: {
-      type: String,
+      type: String, // "YYYY-MM-DD" AD
       required: true,
-      match: [/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'],
     },
     clockIn: {
       type: Date,
@@ -21,33 +19,27 @@ const attendanceSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    // Computed on clock-out, in hours (2 decimal places)
-    totalHours: {
-      type: Number,
-      default: null,
-    },
     isLate: {
       type: Boolean,
       default: false,
     },
-    type: {
-      type: String,
-      enum: ['regular', 'excursion'],
-      default: 'regular',
+    totalHours: {
+      type: Number,
+      default: null,
     },
     excursion: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Excursion',
       default: null,
     },
+    deviceId: {
+      type: String,
+      trim: true,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-// Prevent duplicate attendance for the same user on the same date
 attendanceSchema.index({ user: 1, date: 1 }, { unique: true });
 
-// Speed up the auto clock-out job query
-attendanceSchema.index({ date: 1, clockOut: 1 });
-
-export default mongoose.model('Attendance', attendanceSchema);
+export default mongoose.model('Attendance', attendanceSchema, 'attendance');

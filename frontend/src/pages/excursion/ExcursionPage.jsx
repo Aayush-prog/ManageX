@@ -162,17 +162,37 @@ const ExcursionRow = ({ excursion: e, onDeleted, onGpxUpdate }) => {
 // ── New excursion modal ───────────────────────────────────────────────────────
 
 const NewExcursionModal = ({ onClose, onCreated }) => {
-  const [form,   setForm]   = useState({ topic: '', startDate: '', endDate: '' });
-  const [saving, setSaving] = useState(false);
-  const [error,  setError]  = useState(null);
-  const [result, setResult] = useState(null);
+  const [form,      setForm]      = useState({ topic: '', startDate: '', endDate: '' });
+  const [users,     setUsers]     = useState([]);
+  const [selected,  setSelected]  = useState(new Set());
+  const [saving,    setSaving]    = useState(false);
+  const [error,     setError]     = useState(null);
+  const [result,    setResult]    = useState(null);
+
+  useEffect(() => {
+    api.get('/users').then(({ data }) => {
+      const list = data.data ?? [];
+      setUsers(list);
+      setSelected(new Set(list.map((u) => u._id)));
+    }).catch(() => {});
+  }, []);
+
+  const toggleUser = (id) => setSelected((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+
+  const toggleAll = () => setSelected((prev) =>
+    prev.size === users.length ? new Set() : new Set(users.map((u) => u._id))
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSaving(true);
     try {
-      const { data } = await api.post('/excursions', form);
+      const { data } = await api.post('/excursions', { ...form, userIds: [...selected] });
       setResult(data.data);
     } catch (err) {
       setError(err.response?.data?.message ?? 'Failed to create excursion');
@@ -183,8 +203,8 @@ const NewExcursionModal = ({ onClose, onCreated }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
           <h3 className="font-semibold text-gray-800">New Filming Excursion</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
         </div>
@@ -203,7 +223,7 @@ const NewExcursionModal = ({ onClose, onCreated }) => {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Topic</label>
               <input
@@ -233,14 +253,43 @@ const NewExcursionModal = ({ onClose, onCreated }) => {
                 />
               </div>
             </div>
-            <p className="text-xs text-gray-400">Attendance will be auto-generated for all active staff (12 PM – 5 PM) for each working day. Saturdays are skipped.</p>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium text-gray-600">
+                  Participants ({selected.size} / {users.length})
+                </label>
+                <button type="button" onClick={toggleAll}
+                  className="text-xs text-brand-600 hover:text-brand-700 font-medium">
+                  {selected.size === users.length ? 'Deselect all' : 'Select all'}
+                </button>
+              </div>
+              <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-48 overflow-y-auto">
+                {users.map((u) => (
+                  <label key={u._id} className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50 select-none">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(u._id)}
+                      onChange={() => toggleUser(u._id)}
+                      className="rounded accent-brand-600"
+                    />
+                    <span className="text-sm text-gray-700 flex-1">{u.name}</span>
+                    <span className="text-xs text-gray-400 capitalize">{u.role}</span>
+                  </label>
+                ))}
+                {users.length === 0 && (
+                  <p className="text-xs text-gray-400 text-center py-4">Loading…</p>
+                )}
+              </div>
+            </div>
+
             {error && <p className="text-xs text-red-500">{error}</p>}
             <div className="flex gap-2 pt-1">
               <button type="button" onClick={onClose}
                 className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
                 Cancel
               </button>
-              <button type="submit" disabled={saving}
+              <button type="submit" disabled={saving || selected.size === 0}
                 className="flex-1 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50">
                 {saving ? 'Creating…' : 'Create Excursion'}
               </button>

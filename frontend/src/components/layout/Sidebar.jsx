@@ -29,11 +29,13 @@ const NAV_SECTIONS = {
     {
       heading: 'HR & Team',
       items: [
-        { label: 'Excursions',     to: '/excursions' },
-        { label: 'Route Map',      to: '/gpx' },
-        { label: 'My Leave',       to: '/leave' },
-        { label: 'Leave Requests', to: '/leave/manage' },
-        { label: 'Team',           to: '/manager/team' },
+        { label: 'My Attendance',   to: '/attendance' },
+        { label: 'Team Attendance', to: '/attendance/team' },
+        { label: 'Excursions',      to: '/excursions' },
+        { label: 'Route Map',       to: '/gpx' },
+        { label: 'My Leave',        to: '/leave' },
+        { label: 'Leave Requests',  to: '/leave/manage' },
+        { label: 'Team',            to: '/manager/team' },
       ],
     },
     {
@@ -61,6 +63,8 @@ const NAV_SECTIONS = {
     {
       heading: 'HR & Team',
       items: [
+        { label: 'My Attendance',   to: '/attendance' },
+        { label: 'Team Attendance', to: '/attendance/team' },
         { label: 'Excursions',      to: '/excursions' },
         { label: 'Route Map',       to: '/gpx' },
         { label: 'My Leave',        to: '/leave' },
@@ -94,17 +98,19 @@ const NAV_SECTIONS = {
     {
       heading: 'Team',
       items: [
-        { label: 'Team',           to: '/manager/team' },
-        { label: 'Leave Requests', to: '/leave/manage' },
-        { label: 'Excursions',     to: '/excursions' },
-        { label: 'Route Map',      to: '/gpx' },
+        { label: 'Team Attendance', to: '/attendance/team' },
+        { label: 'Team',            to: '/manager/team' },
+        { label: 'Leave Requests',  to: '/leave/manage' },
+        { label: 'Excursions',      to: '/excursions' },
+        { label: 'Route Map',       to: '/gpx' },
       ],
     },
     {
       heading: 'Personal',
       items: [
-        { label: 'My Payroll', to: '/payroll/me' },
-        { label: 'My Leave',   to: '/leave' },
+        { label: 'My Attendance', to: '/attendance' },
+        { label: 'My Payroll',    to: '/payroll/me' },
+        { label: 'My Leave',      to: '/leave' },
       ],
     },
   ],
@@ -125,17 +131,19 @@ const NAV_SECTIONS = {
     {
       heading: 'Team',
       items: [
-        { label: 'Team',           to: '/manager/team' },
-        { label: 'Leave Requests', to: '/leave/manage' },
-        { label: 'Excursions',     to: '/excursions' },
-        { label: 'Route Map',      to: '/gpx' },
+        { label: 'Team Attendance', to: '/attendance/team' },
+        { label: 'Team',            to: '/manager/team' },
+        { label: 'Leave Requests',  to: '/leave/manage' },
+        { label: 'Excursions',      to: '/excursions' },
+        { label: 'Route Map',       to: '/gpx' },
       ],
     },
     {
       heading: 'Personal',
       items: [
-        { label: 'My Payroll', to: '/payroll/me' },
-        { label: 'My Leave',   to: '/leave' },
+        { label: 'My Attendance', to: '/attendance' },
+        { label: 'My Payroll',    to: '/payroll/me' },
+        { label: 'My Leave',      to: '/leave' },
       ],
     },
   ],
@@ -163,8 +171,9 @@ const NAV_SECTIONS = {
     {
       heading: 'Personal',
       items: [
-        { label: 'My Payroll', to: '/payroll/me' },
-        { label: 'My Leave',   to: '/leave' },
+        { label: 'My Attendance', to: '/attendance' },
+        { label: 'My Payroll',    to: '/payroll/me' },
+        { label: 'My Leave',      to: '/leave' },
       ],
     },
   ],
@@ -185,8 +194,9 @@ const NAV_SECTIONS = {
     {
       heading: 'Personal',
       items: [
-        { label: 'My Payroll', to: '/payroll/me' },
-        { label: 'My Leave',   to: '/leave' },
+        { label: 'My Attendance', to: '/attendance' },
+        { label: 'My Payroll',    to: '/payroll/me' },
+        { label: 'My Leave',      to: '/leave' },
       ],
     },
   ],
@@ -207,8 +217,9 @@ const NAV_SECTIONS = {
     {
       heading: 'Personal',
       items: [
-        { label: 'My Payroll', to: '/payroll/me' },
-        { label: 'My Leave',   to: '/leave' },
+        { label: 'My Attendance', to: '/attendance' },
+        { label: 'My Payroll',    to: '/payroll/me' },
+        { label: 'My Leave',      to: '/leave' },
       ],
     },
   ],
@@ -229,8 +240,9 @@ const NAV_SECTIONS = {
     {
       heading: 'Personal',
       items: [
-        { label: 'My Payroll', to: '/payroll/me' },
-        { label: 'My Leave',   to: '/leave' },
+        { label: 'My Attendance', to: '/attendance' },
+        { label: 'My Payroll',    to: '/payroll/me' },
+        { label: 'My Leave',      to: '/leave' },
       ],
     },
   ],

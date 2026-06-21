@@ -69,6 +69,14 @@ const userSchema = new mongoose.Schema(
       default: 1.5,
       min: [1, 'Multiplier must be >= 1'],
     },
+    rfid_uid: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      default: null,
+      sparse: true,
+      unique: true,
+    },
     isSuperAdmin: {
       type: Boolean,
       default: false,

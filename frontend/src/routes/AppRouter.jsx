@@ -6,6 +6,7 @@ import ProtectedRoute from './ProtectedRoute.jsx';
 import Login from '../pages/auth/Login.jsx';
 
 const AttendancePage       = lazy(() => import('../pages/attendance/AttendancePage.jsx'));
+const TeamAttendancePage   = lazy(() => import('../pages/attendance/TeamAttendancePage.jsx'));
 const MyPayrollPage        = lazy(() => import('../pages/payroll/MyPayrollPage.jsx'));
 const PayrollPage          = lazy(() => import('../pages/finance/PayrollPage.jsx'));
 const AccountingPage       = lazy(() => import('../pages/finance/AccountingPage.jsx'));
@@ -73,6 +74,11 @@ const TeamScopedRoutes = () => {
       <Route element={<ProtectedRoute />}>
         <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
         <Route path="/superadmin/teams"     element={<TeamsPage />} />
+      </Route>
+
+      {/* Team attendance — coordinator, manager, admin */}
+      <Route element={<ProtectedRoute allowedRoles={['coordinator', 'manager', 'admin']} />}>
+        <Route path="/attendance/team" element={<TeamAttendancePage />} />
       </Route>
 
       {/* Leave management — coordinator and admin */}

@@ -16,7 +16,7 @@ export const getExcursions = async (req, res, next) => {
 
 export const createExcursion = async (req, res, next) => {
   try {
-    const { topic, startDate, endDate } = req.body;
+    const { topic, startDate, endDate, userIds } = req.body;
     if (!topic || !startDate || !endDate) {
       return res.status(400).json({ success: false, message: 'topic, startDate and endDate are required' });
     }
@@ -24,7 +24,7 @@ export const createExcursion = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'startDate must be before or equal to endDate' });
     }
     const teamId = req.headers['x-active-team'] || null;
-    const result = await createExcursionService(topic, startDate, endDate, req.user.id, teamId);
+    const result = await createExcursionService(topic, startDate, endDate, req.user.id, teamId, userIds ?? []);
     return res.status(201).json({ success: true, data: result });
   } catch (err) { next(err); }
 };

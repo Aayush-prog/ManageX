@@ -18,7 +18,10 @@
       "Read(//opt/homebrew/bin/**)",
       "Bash(node leave_fix.js)",
       "Bash(node src/seeds/seed.js)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(k,':',v\\) for k,v in d.get\\('dependencies',{}\\).items\\(\\)]\")",
+      "Bash(npx eslint *)",
+      "Bash(npx --yes vite build)"
     ]
   }
 }
