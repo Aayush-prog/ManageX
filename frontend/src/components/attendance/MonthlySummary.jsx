@@ -1,5 +1,5 @@
 import { useMemo, useEffect, useState } from 'react';
-import { fmtBSDateStr, fmtTime } from '../../utils/nepaliDate.js';
+import { fmtBSDateStr, fmtTime, getAbsenceCutoffISO } from '../../utils/nepaliDate.js';
 import api from '../../services/api.js';
 
 const fmtDate = fmtBSDateStr;
@@ -13,9 +13,9 @@ const SummaryCard = ({ label, value, accent }) => (
 
 const getWorkingDays = (startISO, endISO) => {
   if (!startISO || !endISO) return [];
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  const end     = new Date(Math.min(new Date(endISO), today));
+  const cutoffISO = getAbsenceCutoffISO();
+  const effectiveEnd = endISO > cutoffISO ? cutoffISO : endISO;
+  const end     = new Date(effectiveEnd);
   const current = new Date(startISO);
   const days    = [];
   while (current <= end) {

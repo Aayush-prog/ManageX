@@ -5,6 +5,7 @@ import api from '../../services/api.js';
 import {
   BS_MONTHS, currentBSMonthYear, currentBSYear,
   bsMonthToADRange, fmtBSDateStr, fmtTime,
+  getAbsenceCutoffISO,
 } from '../../utils/nepaliDate.js';
 import { expandLeaveDates } from './AttendancePage.jsx';
 
@@ -15,12 +16,14 @@ const eventToDateStr = (isoOrDate) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-// Count working days (Sun-Fri) in a date range, excluding holidays
+// Count working days (Sun-Fri) in a date range, excluding holidays.
+// Stops counting at the absence cutoff so today isn't counted as a missed
+// working day before 11 PM Kathmandu.
 const countWorkingDays = (startISO, endISO, holidayDateSet) => {
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
+  const cutoffISO = getAbsenceCutoffISO();
+  const effectiveEnd = endISO > cutoffISO ? cutoffISO : endISO;
   const cur = new Date(startISO);
-  const end = new Date(Math.min(new Date(endISO), today));
+  const end = new Date(effectiveEnd);
   let count = 0;
   while (cur <= end) {
     const dateStr = cur.toISOString().slice(0, 10);
@@ -46,7 +49,14 @@ const computeUserStats = (userRecords, userLeaveDates, workingDays) => {
 
 const SeedModal = ({ trackFrom, onClose, onSeeded }) => {
   const today = new Date().toISOString().slice(0, 10);
-  const [form,    setForm]    = useState({ startDate: trackFrom || today, endDate: today });
+  // Default the upper bound to yesterday so backfill never overwrites today's
+  // (still-open) attendance — matches the "no absent before 11 PM" rule.
+  const yesterday = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  })();
+  const [form,    setForm]    = useState({ startDate: trackFrom || today, endDate: yesterday });
   const [seeding, setSeeding] = useState(false);
   const [result,  setResult]  = useState(null);
   const [error,   setError]   = useState('');
@@ -86,7 +96,7 @@ const SeedModal = ({ trackFrom, onClose, onSeeded }) => {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
-                <input type="date" value={form.endDate} max={today} onChange={(e) => set('endDate', e.target.value)}
+                <input type="date" value={form.endDate} max={yesterday} onChange={(e) => set('endDate', e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
               {error && <p className="text-xs text-red-500">{error}</p>}
@@ -365,8 +375,7 @@ const UserDetailModal = ({ userData, startISO, endISO, holidayDateSet, leaveDate
   const byDate = {};
   for (const r of records) byDate[r.date] = r;
 
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
+  const cutoffISO = getAbsenceCutoffISO();
   const rows = [];
   const cur  = new Date(startISO);
   const end  = new Date(endISO);
@@ -376,7 +385,7 @@ const UserDetailModal = ({ userData, startISO, endISO, holidayDateSet, leaveDate
       const record  = byDate[dateStr];
       const isHol   = holidayDateSet.has(dateStr);
       const isLeave = userLeaveDates.has(dateStr);
-      const isFuture = cur > today;
+      const isFuture = dateStr > cutoffISO;
       let status = 'absent';
       if (isFuture) status = 'future';
       else if (isHol) status = 'holiday';

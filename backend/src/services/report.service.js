@@ -4,6 +4,7 @@ import Payroll       from '../models/Payroll.js';
 import Task          from '../models/Task.js';
 import User          from '../models/User.js';
 import CalendarEvent from '../models/CalendarEvent.js';
+import { getAbsenceCutoffDate } from '../utils/time.js';
 
 const SICK_QUOTA   = 7;
 const ANNUAL_QUOTA = 7;
@@ -60,12 +61,14 @@ export const getUserReportService = async (userId, { startFrom, startTo }) => {
     }
   }
 
-  // Count working days (Sun-Fri) excluding holidays
+  // Count working days (Sun-Fri) excluding holidays.
+  // Stops at the absence cutoff (yesterday in Kathmandu before 11 PM, today at/after)
+  // so today isn't counted as a missed working day during the morning.
   const workingDays = (() => {
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
+    const cutoff = getAbsenceCutoffDate();
+    const effectiveEnd = startTo > cutoff ? cutoff : startTo;
     const cur = new Date(startFrom);
-    const end = new Date(Math.min(new Date(startTo), today));
+    const end = new Date(effectiveEnd);
     let count = 0;
     while (cur <= end) {
       const ds = cur.toISOString().slice(0, 10);

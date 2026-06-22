@@ -313,9 +313,9 @@ const TeamsPage = () => {
 
   return (
     <DashboardLayout title="Team Management">
-      <div className="flex gap-6 h-full">
+      <div className="flex flex-col lg:flex-row gap-6 lg:h-full">
         {/* Left panel — teams list */}
-        <div className="w-72 flex-shrink-0 flex flex-col gap-3">
+        <div className="w-full lg:w-72 lg:flex-shrink-0 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Teams</h2>
             <button onClick={() => setShowCreate(true)} className="btn-primary text-xs px-3 py-1.5">

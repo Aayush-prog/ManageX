@@ -7,6 +7,7 @@ import api from '../../services/api.js';
 import {
   BS_MONTHS, currentBSMonthYear, currentBSYear,
   bsMonthToADRange, fmtTime, fmtBSDateStr,
+  getAbsenceCutoffISO,
 } from '../../utils/nepaliDate.js';
 
 // ── Status config ─────────────────────────────────────────────────────────────
@@ -62,8 +63,9 @@ const normalizeRecordDate = (d) => {
 
 // Build a Map<dateStr, { status, record, bsDay }> for every day in the range
 export const buildDayMap = (records, leaveDateSet, holidayDateSet, startISO, endISO) => {
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
+  // Anything past this ISO date is treated as "future" — keeps today out of
+  // absent status until 11 PM Kathmandu, when the day is considered closed.
+  const cutoffISO = getAbsenceCutoffISO();
 
   const recordMap = {};
   for (const r of records) {
@@ -78,7 +80,7 @@ export const buildDayMap = (records, leaveDateSet, holidayDateSet, startISO, end
   while (cur <= end) {
     const dateStr    = cur.toISOString().slice(0, 10);
     const isSaturday = cur.getDay() === 6;
-    const isFuture   = cur > today;
+    const isFuture   = dateStr > cutoffISO;
     const record     = recordMap[dateStr];
 
     let status;

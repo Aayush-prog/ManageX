@@ -1,7 +1,7 @@
 import Attendance    from '../models/Attendance.js';
 import User          from '../models/User.js';
 import CalendarEvent from '../models/CalendarEvent.js';
-import { getLocalDateString, makeLocalDateTime, isLocalDaySaturday } from '../utils/time.js';
+import { getLocalDateString, makeLocalDateTime, isLocalDaySaturday, getAbsenceCutoffDate } from '../utils/time.js';
 
 // ── Manager edit ─────────────────────────────────────────────────────────────
 
@@ -135,8 +135,10 @@ export const seedAttendanceService = async (startDate, endDate) => {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }));
 
-  const todayStr = getLocalDateString();
-  const capEnd   = endDate > todayStr ? todayStr : endDate;
+  // Cap at the absence cutoff (yesterday before 11 PM Kathmandu, today after)
+  // so backfilling never creates a fake "present" record for the still-open day.
+  const cutoff = getAbsenceCutoffDate();
+  const capEnd = endDate > cutoff ? cutoff : endDate;
 
   const dates = [];
   const cur = new Date(startDate + 'T12:00:00Z');

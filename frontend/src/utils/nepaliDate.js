@@ -86,6 +86,24 @@ export const adMonthToBSLabel = (adYear, adMonth) => {
   } catch { return ''; }
 };
 
+// Latest YYYY-MM-DD (Kathmandu) that should be considered for "absent" display.
+// Today only becomes absent-eligible at/after 23:00 Kathmandu time —
+// before that, the cutoff is yesterday so today renders as pending, not absent.
+export const getAbsenceCutoffISO = () => {
+  const tz   = 'Asia/Kathmandu';
+  const now  = new Date();
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now);
+  const hour  = parseInt(
+    new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: 'numeric', hour12: false }).format(now),
+    10,
+  );
+  if (hour >= 23) return today;
+  const [y, m, d] = today.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() - 1);
+  return dt.toISOString().slice(0, 10);
+};
+
 // Today in full: "Wednesday, Falgun 20, 2082"
 export const todayBSFull = () => {
   try {

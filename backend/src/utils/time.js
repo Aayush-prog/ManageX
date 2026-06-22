@@ -92,6 +92,21 @@ export const makeLocalDateTime = (dateStr, hour, minute = 0) => {
 };
 
 /**
+ * Latest local YYYY-MM-DD that should count toward "absent" calculations.
+ * Today is only considered closed at/after 23:00 local time — before that, the
+ * cutoff is yesterday so today doesn't yet show as absent.
+ */
+export const getAbsenceCutoffDate = (date = new Date()) => {
+  const today = getLocalDateString(date);
+  const { hour } = getLocalTimeParts(date);
+  if (hour >= 23) return today;
+  const [y, m, d] = today.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() - 1);
+  return dt.toISOString().slice(0, 10);
+};
+
+/**
  * Returns true if the given date is a Saturday in the configured timezone.
  */
 export const isLocalDaySaturday = (date = new Date()) => {
