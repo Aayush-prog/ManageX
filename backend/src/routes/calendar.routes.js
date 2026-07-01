@@ -5,7 +5,7 @@ import CalendarEvent from '../models/CalendarEvent.js';
 const router = Router();
 router.use(authenticate);
 
-const VALID_TYPES = ['road', 'trail', 'event', 'holiday'];
+const VALID_TYPES = ['road', 'trail', 'event', 'holiday', 'observance'];
 
 // GET /api/calendar?start=YYYY-MM-DD&end=YYYY-MM-DD
 router.get('/', async (req, res, next) => {

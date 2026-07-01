@@ -19,10 +19,11 @@ const bsISOtoADISO = (bsDateStr) => {
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const TYPE_STYLES = {
-  road:    { dot: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-700',    label: 'Road' },
-  trail:   { dot: 'bg-green-500',  badge: 'bg-green-100 text-green-700',  label: 'Trail' },
-  event:   { dot: 'bg-orange-500', badge: 'bg-orange-100 text-orange-700', label: 'Event' },
-  holiday: { dot: 'bg-red-400',    badge: 'bg-red-100 text-red-600',      label: 'Holiday' },
+  road:       { dot: 'bg-blue-500',    badge: 'bg-blue-100 text-blue-700',       label: 'Road' },
+  trail:      { dot: 'bg-green-500',   badge: 'bg-green-100 text-green-700',     label: 'Trail' },
+  event:      { dot: 'bg-orange-500',  badge: 'bg-orange-100 text-orange-700',   label: 'Event' },
+  holiday:    { dot: 'bg-red-400',     badge: 'bg-red-100 text-red-600',         label: 'Holiday' },
+  observance: { dot: 'bg-purple-500',  badge: 'bg-purple-100 text-purple-700',   label: 'Observance' },
 };
 
 const CONTACT_STATUS_STYLES = {
@@ -240,6 +241,15 @@ const CalendarPage = () => {
         organizerContactPosition: 'Coordinator',
         organizerPhone: '9851000000',
       },
+      {
+        title: 'World Education Day',
+        date: '2082-09-09',
+        type: 'observance',
+        description: 'International awareness day',
+        organizerContactName: '',
+        organizerContactPosition: '',
+        organizerPhone: '',
+      },
     ];
 
     const ws = XLSX.utils.json_to_sheet(sampleRows, {
@@ -271,7 +281,7 @@ const CalendarPage = () => {
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
-      const VALID_TYPES = ['road', 'trail', 'event', 'holiday'];
+      const VALID_TYPES = ['road', 'trail', 'event', 'holiday', 'observance'];
       const eventsToUpload = [];
       const parseErrors = [];
 
@@ -631,6 +641,7 @@ const CalendarPage = () => {
                   <option value="trail">Trail</option>
                   <option value="event">Event</option>
                   <option value="holiday">Holiday</option>
+                  <option value="observance">Observance (e.g. World Education Day)</option>
                 </select>
               </div>
               <div>
@@ -725,6 +736,7 @@ const CalendarPage = () => {
                   <option value="trail">Trail</option>
                   <option value="event">Event</option>
                   <option value="holiday">Holiday</option>
+                  <option value="observance">Observance (e.g. World Education Day)</option>
                 </select>
               </div>
               <div>

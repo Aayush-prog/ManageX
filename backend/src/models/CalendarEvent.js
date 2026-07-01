@@ -5,7 +5,7 @@ const calendarEventSchema = new mongoose.Schema(
     title:            { type: String, required: true, trim: true },
     description:      { type: String, trim: true, default: '' },
     date:             { type: Date, required: true },
-    type:             { type: String, enum: ['road', 'trail', 'event', 'holiday'], required: true },
+    type:             { type: String, enum: ['road', 'trail', 'event', 'holiday', 'observance'], required: true },
     createdBy:        { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     organizerContactName:     { type: String, trim: true, default: '' },
     organizerContactPosition: { type: String, trim: true, default: '' },
