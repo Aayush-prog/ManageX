@@ -226,7 +226,7 @@ export const listUsersService = async (teamId) => {
   const userFilter = { isActive: true };
   if (teamId) userFilter.salaryFromTeam = teamId;
   return User.find(userFilter)
-    .select('name email role monthlySalary ssfEmployeePercent ssfEmployerPercent tdsPercent isActive salaryFromTeam')
+    .select('name email role monthlySalary ssfEmployeePercent ssfEmployerPercent tdsPercent isActive salaryFromTeam workStartHour workStartMinute workEndHour workEndMinute lateGraceMinutes')
     .populate('salaryFromTeam', 'name')
     .sort({ name: 1 })
     .lean();

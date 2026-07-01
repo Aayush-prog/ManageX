@@ -14,6 +14,7 @@ import excursionRoutes      from './excursion.routes.js';
 import gpxRoutes            from './gpx.routes.js';
 import teamRoutes           from './team.routes.js';
 import pushRoutes           from './push.routes.js';
+import wfhRoutes            from './wfh.routes.js';
 
 const router = Router();
 
@@ -36,5 +37,6 @@ router.use('/excursions',     excursionRoutes);
 router.use('/gpx',            gpxRoutes);
 router.use('/teams',          teamRoutes);
 router.use('/push',           pushRoutes);
+router.use('/wfh',            wfhRoutes);
 
 export default router;

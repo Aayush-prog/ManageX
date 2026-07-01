@@ -16,6 +16,8 @@ const KanbanPage           = lazy(() => import('../pages/projects/KanbanPage.jsx
 const MyTasksPage          = lazy(() => import('../pages/projects/MyTasksPage.jsx'));
 const LeavePage            = lazy(() => import('../pages/leave/LeavePage.jsx'));
 const LeaveManagementPage  = lazy(() => import('../pages/leave/LeaveManagementPage.jsx'));
+const WFHPage              = lazy(() => import('../pages/wfh/WFHPage.jsx'));
+const WFHManagementPage    = lazy(() => import('../pages/wfh/WFHManagementPage.jsx'));
 const CalendarPage         = lazy(() => import('../pages/calendar/CalendarPage.jsx'));
 const NotificationsPage    = lazy(() => import('../pages/notifications/NotificationsPage.jsx'));
 const ExcursionPage        = lazy(() => import('../pages/excursion/ExcursionPage.jsx'));
@@ -66,6 +68,7 @@ const TeamScopedRoutes = () => {
         <Route path="/projects/:id"    element={<KanbanPage />} />
         <Route path="/tasks/me"        element={<MyTasksPage />} />
         <Route path="/leave"           element={<LeavePage />} />
+        <Route path="/wfh"             element={<WFHPage />} />
         <Route path="/notifications"   element={<NotificationsPage />} />
         <Route path="/gpx"             element={<GpxMapPage />} />
       </Route>
@@ -84,6 +87,7 @@ const TeamScopedRoutes = () => {
       {/* Leave management — coordinator and admin */}
       <Route element={<ProtectedRoute allowedRoles={['coordinator', 'manager', 'admin']} />}>
         <Route path="/leave/manage"  element={<LeaveManagementPage />} />
+        <Route path="/wfh/manage"    element={<WFHManagementPage />} />
         <Route path="/excursions"    element={<ExcursionPage />} />
       </Route>
 

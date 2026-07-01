@@ -21,7 +21,10 @@ const calcDays = (startDate, endDate) => {
 };
 
 /**
- * How many approved/pending leave days a user has used for a given type in a given year.
+ * Approved + Pending leave days for a user/type/year.
+ * Used for quota enforcement when a new request comes in — pending requests
+ * must count so a user can't queue up multiple pending requests that together
+ * exceed the quota.
  */
 const usedDays = async (userId, type, year) => {
   const records = await Leave.find({
@@ -29,6 +32,20 @@ const usedDays = async (userId, type, year) => {
     type,
     year,
     status: { $in: ['Approved', 'Pending'] },
+  });
+  return records.reduce((sum, r) => sum + r.days, 0);
+};
+
+/**
+ * Approved-only days for display purposes. Pending shows in the history but
+ * doesn't inflate the "used" counter.
+ */
+const approvedDays = async (userId, type, year) => {
+  const records = await Leave.find({
+    user: userId,
+    type,
+    year,
+    status: 'Approved',
   });
   return records.reduce((sum, r) => sum + r.days, 0);
 };
@@ -113,19 +130,24 @@ export const getMyLeavesService = async (userId, year, startFrom, startTo) => {
     .sort({ createdAt: -1 })
     .lean();
 
-  // Compute quota from already-fetched leaves (avoids 2 extra DB queries)
-  const active = leaves.filter((l) => ['Approved', 'Pending'].includes(l.status));
+  // Compute quota from already-fetched leaves (avoids 2 extra DB queries).
+  // Only Approved leaves count as "used" for the display bar — Pending shows
+  // separately in the leave history so users don't see phantom "used" days.
+  const approved = leaves.filter((l) => l.status === 'Approved');
+  const sumDays = (list, type) =>
+    list.filter((l) => l.type === type).reduce((s, l) => s + (l.days || 0), 0);
+
   let sickUsed, annualUsed, casualUsed;
   if (startFrom && startTo) {
-    sickUsed   = active.filter((l) => l.type === 'Sick').reduce((s, l) => s + l.days, 0);
-    annualUsed = active.filter((l) => l.type === 'Annual').reduce((s, l) => s + l.days, 0);
-    casualUsed = active.filter((l) => l.type === 'Casual').reduce((s, l) => s + l.days, 0);
+    sickUsed   = sumDays(approved, 'Sick');
+    annualUsed = sumDays(approved, 'Annual');
+    casualUsed = sumDays(approved, 'Casual');
   } else {
     const qYear = year ? Number(year) : new Date().getFullYear();
-    const activeForYear = active.filter((l) => l.year === qYear);
-    sickUsed   = activeForYear.filter((l) => l.type === 'Sick').reduce((s, l) => s + l.days, 0);
-    annualUsed = activeForYear.filter((l) => l.type === 'Annual').reduce((s, l) => s + l.days, 0);
-    casualUsed = activeForYear.filter((l) => l.type === 'Casual').reduce((s, l) => s + l.days, 0);
+    const forYear = approved.filter((l) => l.year === qYear);
+    sickUsed   = sumDays(forYear, 'Sick');
+    annualUsed = sumDays(forYear, 'Annual');
+    casualUsed = sumDays(forYear, 'Casual');
   }
 
   return {
@@ -140,7 +162,7 @@ export const getMyLeavesService = async (userId, year, startFrom, startTo) => {
 
 // ── All leaves (manager / admin) ───────────────────────────────────────────────
 
-export const getAllLeavesService = async ({ year, startFrom, startTo, status, userId: filterUserId, teamId } = {}) => {
+export const getAllLeavesService = async ({ year, startFrom, startTo, status, userId: filterUserId, teamId, requesterId } = {}) => {
   const filter = {};
   if (startFrom && startTo) {
     filter.startDate = { $gte: startFrom, $lte: startTo };
@@ -152,10 +174,17 @@ export const getAllLeavesService = async ({ year, startFrom, startTo, status, us
 
   if (teamId) {
     const memberships = await TeamMembership.find({ team: teamId }).select('user').lean();
-    const memberIds   = memberships.map((m) => m.user);
-    filter.user = filterUserId
-      ? (memberIds.some((id) => id.toString() === filterUserId) ? filterUserId : null)
-      : { $in: memberIds };
+    const memberIds   = memberships.map((m) => String(m.user));
+    // A coordinator/admin approving on behalf of this team should also see their own
+    // leave requests in the same view — otherwise their submissions vanish.
+    if (requesterId && !memberIds.includes(String(requesterId))) {
+      memberIds.push(String(requesterId));
+    }
+    if (filterUserId) {
+      filter.user = memberIds.includes(String(filterUserId)) ? filterUserId : null;
+    } else {
+      filter.user = { $in: memberIds };
+    }
     if (filter.user === null) return [];
   }
 
@@ -240,9 +269,9 @@ export const rejectLeaveService = async (leaveId, approverId, rejectionReason) =
 export const getQuotaService = async (userId, year) => {
   const y = year ? Number(year) : new Date().getFullYear();
   const [sickUsed, annualUsed, casualUsed] = await Promise.all([
-    usedDays(userId, 'Sick', y),
-    usedDays(userId, 'Annual', y),
-    usedDays(userId, 'Casual', y),
+    approvedDays(userId, 'Sick', y),
+    approvedDays(userId, 'Annual', y),
+    approvedDays(userId, 'Casual', y),
   ]);
   return {
     year: y,

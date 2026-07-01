@@ -14,6 +14,8 @@ const fmtClock = (date) => {
 
 const RESTART_DELAY_MS = 5_000;
 
+let activeStream = null;
+
 // Ensure the collection records pre-images so we can tell clockOut went null → set.
 const enablePreImages = async () => {
   try {
@@ -65,16 +67,28 @@ const handleChange = (change) => {
 };
 
 const watch = () => {
+  // Ensure only one stream is active at a time
+  if (activeStream) {
+    try { activeStream.close(); } catch {}
+    activeStream = null;
+  }
+
   const stream = Attendance.watch([], {
     fullDocument:              'updateLookup',
     fullDocumentBeforeChange:  'whenAvailable',
   });
 
+  activeStream = stream;
+
   stream.on('change', handleChange);
   stream.on('error', (err) => {
     console.error('[attendanceNotify] stream error:', err.message);
+    if (activeStream === stream) activeStream = null;
     try { stream.close(); } catch {}
     setTimeout(watch, RESTART_DELAY_MS);
+  });
+  stream.on('close', () => {
+    if (activeStream === stream) activeStream = null;
   });
 };
 

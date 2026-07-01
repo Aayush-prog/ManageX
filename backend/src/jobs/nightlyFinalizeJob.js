@@ -1,4 +1,5 @@
 import Attendance from '../models/Attendance.js';
+import User from '../models/User.js';
 import env from '../config/env.js';
 import { getLocalDateString, getLocalTimeParts, getClockOutTime } from '../utils/time.js';
 
@@ -26,9 +27,6 @@ export const startNightlyFinalizeJob = () => {
     firedToday = today;
 
     try {
-      // Set clockOut to the configured end-of-day time (default 5 PM)
-      const clockOut = getClockOutTime();
-
       const openSessions = await Attendance.find({ date: today, clockOut: null });
 
       if (!openSessions.length) {
@@ -36,7 +34,16 @@ export const startNightlyFinalizeJob = () => {
         return;
       }
 
+      const userIds = [...new Set(openSessions.map((s) => String(s.user)))];
+      const users   = await User.find({ _id: { $in: userIds } })
+        .select('workEndHour workEndMinute')
+        .lean();
+      const userMap = new Map(users.map((u) => [String(u._id), u]));
+
       const bulkOps = openSessions.map((record) => {
+        const user = userMap.get(String(record.user)) ?? {};
+        // Close each session at that user's own end-of-day time.
+        const clockOut = getClockOutTime(new Date(), user);
         const effectiveClockOut = clockOut > record.clockIn ? clockOut : new Date();
         const totalHours = parseFloat(((effectiveClockOut - record.clockIn) / 3_600_000).toFixed(2));
         return {

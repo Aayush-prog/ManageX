@@ -123,7 +123,9 @@ export const getTeamAttendanceSummaryService = async (start, end, teamId = null)
 
 export const seedAttendanceService = async (startDate, endDate) => {
   const [users, holidays] = await Promise.all([
-    User.find({ isActive: true }).select('_id').lean(),
+    User.find({ isActive: true })
+      .select('_id workStartHour workStartMinute workEndHour workEndMinute')
+      .lean(),
     CalendarEvent.find({
       type: 'holiday',
       date: { $gte: new Date(startDate), $lte: new Date(endDate + 'T23:59:59Z') },
@@ -168,15 +170,23 @@ export const seedAttendanceService = async (startDate, endDate) => {
 
   const docs = [];
   for (const user of users) {
+    const startH = user.workStartHour ?? 12;
+    const startM = user.workStartMinute ?? 0;
+    const endH   = user.workEndHour ?? 17;
+    const endM   = user.workEndMinute ?? 0;
+    // Saturday: keep the historical convention of a later start (noon).
     for (const { dateStr, isSat } of dates) {
       if (existingSet.has(`${user._id}:${dateStr}`)) continue;
-      const clockInHour = isSat ? 12 : 9;
+      const effStartH = isSat ? Math.max(startH, 12) : startH;
+      const totalHours = parseFloat(
+        (((endH * 60 + endM) - (effStartH * 60 + startM)) / 60).toFixed(2)
+      );
       docs.push({
         user:       user._id,
         date:       dateStr,
-        clockIn:    makeLocalDateTime(dateStr, clockInHour),
-        clockOut:   makeLocalDateTime(dateStr, 17),
-        totalHours: 17 - clockInHour,
+        clockIn:    makeLocalDateTime(dateStr, effStartH, startM),
+        clockOut:   makeLocalDateTime(dateStr, endH, endM),
+        totalHours: totalHours > 0 ? totalHours : 0,
         isLate:     false,
       });
     }
@@ -199,7 +209,9 @@ export const seedAttendanceService = async (startDate, endDate) => {
 export const markAllPresentTodayService = async () => {
   const today = getLocalDateString();
 
-  const users = await User.find({ isActive: true }).select('_id').lean();
+  const users = await User.find({ isActive: true })
+    .select('_id workStartHour workStartMinute workEndHour workEndMinute')
+    .lean();
   if (!users.length) return { created: 0, updated: 0, skipped: 0 };
 
   const userIds = users.map((u) => u._id);
@@ -210,16 +222,22 @@ export const markAllPresentTodayService = async () => {
 
   const existingMap = new Map(existing.map((r) => [r.user.toString(), r]));
 
-  const clockIn  = makeLocalDateTime(today, 12);
-  const clockOut = makeLocalDateTime(today, 17);
-  const totalHours = 5;
-
   const toCreate = [];
   let updated = 0;
 
   for (const user of users) {
     const key = user._id.toString();
     const record = existingMap.get(key);
+
+    const startH = user.workStartHour ?? 12;
+    const startM = user.workStartMinute ?? 0;
+    const endH   = user.workEndHour ?? 17;
+    const endM   = user.workEndMinute ?? 0;
+    const clockIn    = makeLocalDateTime(today, startH, startM);
+    const clockOut   = makeLocalDateTime(today, endH,   endM);
+    const totalHours = parseFloat(
+      (((endH * 60 + endM) - (startH * 60 + startM)) / 60).toFixed(2)
+    );
 
     if (!record) {
       toCreate.push({ user: user._id, date: today, clockIn, clockOut, totalHours, isLate: false });

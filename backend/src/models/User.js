@@ -69,6 +69,11 @@ const userSchema = new mongoose.Schema(
       default: 1.5,
       min: [1, 'Multiplier must be >= 1'],
     },
+    workStartHour:   { type: Number, default: 12, min: 0, max: 23 },
+    workStartMinute: { type: Number, default: 0,  min: 0, max: 59 },
+    workEndHour:     { type: Number, default: 17, min: 0, max: 23 },
+    workEndMinute:   { type: Number, default: 0,  min: 0, max: 59 },
+    lateGraceMinutes: { type: Number, default: 15, min: 0, max: 180 },
     rfid_uid: {
       type: String,
       trim: true,

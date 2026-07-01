@@ -27,5 +27,5 @@ async function sendPush(userId, payload) {
 
 export const notify = (recipient, { type, title, message, link = null }) => {
   Notification.create({ recipient, type, title, message, link }).catch(() => {});
-  sendPush(recipient, { title, body: message, url: link, icon: '/logo.png', badge: '/logo.png' }).catch(() => {});
+  sendPush(recipient, { type, title, body: message, url: link, icon: '/logo.png', badge: '/logo.png' }).catch(() => {});
 };

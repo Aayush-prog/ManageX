@@ -29,7 +29,7 @@ export const getMyLeaves = async (req, res) => {
 export const getAllLeaves = async (req, res) => {
   try {
     const teamId = req.headers['x-active-team'] || null;
-    ok(res, await getAllLeavesService({ ...req.query, teamId }));
+    ok(res, await getAllLeavesService({ ...req.query, teamId, requesterId: req.user.id }));
   } catch (e) { err(res, e); }
 };
 

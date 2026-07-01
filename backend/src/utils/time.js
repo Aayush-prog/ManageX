@@ -25,22 +25,40 @@ export const getLocalTimeParts = (date = new Date()) => {
 };
 
 /**
- * Returns true if clockIn time (in local TZ) is strictly after LATE_HOUR:00.
- * e.g. LATE_HOUR=10 → 10:00:00 is NOT late, 10:00:01 IS late.
+ * Resolves a user's work schedule with sensible fallbacks to env defaults.
+ * `user` is a partial user object with any subset of the schedule fields.
  */
-export const isLateClockIn = (clockIn = new Date()) => {
+export const getUserSchedule = (user = {}) => ({
+  startHour:    user.workStartHour    ?? env.LATE_HOUR,
+  startMinute:  user.workStartMinute  ?? 0,
+  endHour:      user.workEndHour      ?? env.CLOCKOUT_HOUR,
+  endMinute:    user.workEndMinute    ?? env.CLOCKOUT_MINUTE,
+  graceMinutes: user.lateGraceMinutes ?? env.LATE_MINUTE,
+});
+
+/**
+ * Returns true if clockIn (in local TZ) is strictly after the user's
+ * work start time + graceMinutes.
+ */
+export const isLateClockIn = (clockIn = new Date(), user = {}) => {
   const { hour, minute } = getLocalTimeParts(clockIn);
-  return hour * 60 + minute > env.LATE_HOUR * 60 + env.LATE_MINUTE;
+  const sched = getUserSchedule(user);
+  const cutoff = sched.startHour * 60 + sched.startMinute + sched.graceMinutes;
+  return hour * 60 + minute > cutoff;
 };
 
 /**
- * Returns true if the given time is outside the allowed check-in window.
- * Window: CHECKIN_START_HOUR (inclusive) to CHECKIN_END_HOUR (inclusive).
- * e.g. window 6–21 → 5:59 and 21:01 return true (outside).
+ * Returns true if the given time is outside the user's allowed check-in
+ * window. Window widens 1 hour before start and 2 hours after end so users
+ * can still swipe in a bit early / stay late.
  */
-export const isOutsideCheckInWindow = (date = new Date()) => {
-  const { hour } = getLocalTimeParts(date);
-  return hour < env.CHECKIN_START_HOUR || hour >= env.CHECKIN_END_HOUR;
+export const isOutsideCheckInWindow = (date = new Date(), user = {}) => {
+  const { hour, minute } = getLocalTimeParts(date);
+  const sched = getUserSchedule(user);
+  const nowMin   = hour * 60 + minute;
+  const startMin = Math.max(0, sched.startHour * 60 + sched.startMinute - 60);
+  const endMin   = Math.min(24 * 60, sched.endHour * 60 + sched.endMinute + 120);
+  return nowMin < startMin || nowMin >= endMin;
 };
 
 /**
@@ -61,15 +79,16 @@ const getTimezoneOffset = (date = new Date()) => {
 };
 
 /**
- * Returns a Date object for today at CLOCKOUT_HOUR:CLOCKOUT_MINUTE in the
+ * Returns a Date object for today at the user's workEnd time in the
  * configured local timezone. Uses explicit ISO 8601 offset so parsing is exact.
- * e.g. "2024-03-15T17:00:00+05:45" → correct UTC timestamp.
+ * If no user is passed, falls back to env CLOCKOUT_HOUR/MINUTE.
  */
-export const getClockOutTime = (date = new Date()) => {
+export const getClockOutTime = (date = new Date(), user = {}) => {
   const localDate = getLocalDateString(date);
   const offset    = getTimezoneOffset(date);
-  const h = String(env.CLOCKOUT_HOUR).padStart(2, '0');
-  const m = String(env.CLOCKOUT_MINUTE).padStart(2, '0');
+  const sched     = getUserSchedule(user);
+  const h = String(sched.endHour).padStart(2, '0');
+  const m = String(sched.endMinute).padStart(2, '0');
   return new Date(`${localDate}T${h}:${m}:00${offset}`);
 };
 

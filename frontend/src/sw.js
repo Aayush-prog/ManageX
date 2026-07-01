@@ -33,17 +33,26 @@ self.addEventListener('push', (event) => {
   let data;
   try { data = event.data.json(); } catch { return; }
 
-  const { title = 'ManageX', body = '', url = '/', icon = '/logo.png', badge = '/logo.png' } = data;
+  const { title = 'ManageX', body = '', url = '/', icon = '/logo.png', badge = '/logo.png', type } = data;
+
+  const notifyClients = (type === 'clock_in' || type === 'clock_out')
+    ? self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+        list.forEach((client) => client.postMessage({ type: 'ATTENDANCE_UPDATED' }));
+      })
+    : Promise.resolve();
 
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon,
-      badge,
-      vibrate: [200, 100, 200],
-      data: { url },
-      actions: [{ action: 'open', title: 'Open' }],
-    })
+    Promise.all([
+      self.registration.showNotification(title, {
+        body,
+        icon,
+        badge,
+        vibrate: [200, 100, 200],
+        data: { url },
+        actions: [{ action: 'open', title: 'Open' }],
+      }),
+      notifyClients,
+    ])
   );
 });
 

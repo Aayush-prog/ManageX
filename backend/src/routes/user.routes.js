@@ -12,6 +12,7 @@ import {
   changePassword,
   toggleActive,
   updateSalaryFromTeam,
+  updateWorkSchedule,
 } from '../controllers/user.controller.js';
 
 const router = Router();
@@ -33,5 +34,6 @@ router.patch('/:id/set-password',       allowSuperAdmin(), adminSetPassword);
 router.patch('/:id/toggle-active',      allowSuperAdmin(), toggleActive);
 router.patch('/:id',                    allowSuperAdmin(), updateUser);
 router.patch('/:id/salary-from-team',   allowRoles('finance', 'admin'), updateSalaryFromTeam);
+router.patch('/:id/work-schedule',      allowRoles('coordinator', 'admin'), updateWorkSchedule);
 
 export default router;

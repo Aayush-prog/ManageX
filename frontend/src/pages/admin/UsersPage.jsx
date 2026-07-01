@@ -237,6 +237,13 @@ export const ChangePasswordModal = ({ onClose }) => {
 
 // ── Edit User Modal ───────────────────────────────────────────────────────────
 
+const pad = (n) => String(n).padStart(2, '0');
+const toHHMM  = (h, m) => `${pad(h ?? 0)}:${pad(m ?? 0)}`;
+const fromHHMM = (s) => {
+  const [h, m] = (s || '00:00').split(':').map((n) => parseInt(n, 10) || 0);
+  return { h, m };
+};
+
 const EditUserModal = ({ user, onClose, onUpdated, isSuperAdmin }) => {
   const [form,   setForm]   = useState({
     name:            user.name,
@@ -245,6 +252,9 @@ const EditUserModal = ({ user, onClose, onUpdated, isSuperAdmin }) => {
     permissionLevel: user.permissionLevel,
     monthlySalary:   user.monthlySalary ?? 0,
     rfid_uid:        user.rfid_uid ?? '',
+    workStart:       toHHMM(user.workStartHour ?? 12, user.workStartMinute ?? 0),
+    workEnd:         toHHMM(user.workEndHour ?? 17, user.workEndMinute ?? 0),
+    lateGraceMinutes: user.lateGraceMinutes ?? 15,
   });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
@@ -253,9 +263,23 @@ const EditUserModal = ({ user, onClose, onUpdated, isSuperAdmin }) => {
   const submit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.role) { setError('Name, email, and job title are required'); return; }
+    const start = fromHHMM(form.workStart);
+    const end   = fromHHMM(form.workEnd);
+    if (end.h * 60 + end.m <= start.h * 60 + start.m) {
+      setError('Work end time must be after start time'); return;
+    }
     setSaving(true); setError('');
     try {
-      const payload = { ...form, monthlySalary: Number(form.monthlySalary) || 0 };
+      const { workStart, workEnd, ...rest } = form;
+      const payload = {
+        ...rest,
+        monthlySalary:    Number(form.monthlySalary) || 0,
+        workStartHour:    start.h,
+        workStartMinute:  start.m,
+        workEndHour:      end.h,
+        workEndMinute:    end.m,
+        lateGraceMinutes: Number(form.lateGraceMinutes) || 0,
+      };
       if (!isSuperAdmin) delete payload.rfid_uid;
       const { data } = await api.patch(`/users/${user._id}`, payload);
       onUpdated(data.data); onClose();
@@ -308,6 +332,26 @@ const EditUserModal = ({ user, onClose, onUpdated, isSuperAdmin }) => {
               <p className="text-xs text-gray-400 mt-1">Unique card/tag UID assigned to this user. Super admin only.</p>
             </div>
           )}
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Work Shift</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className={labelCls}>Start</label>
+                <input type="time" className={inputCls} value={form.workStart} onChange={(e) => set('workStart', e.target.value)} />
+              </div>
+              <div>
+                <label className={labelCls}>End</label>
+                <input type="time" className={inputCls} value={form.workEnd} onChange={(e) => set('workEnd', e.target.value)} />
+              </div>
+              <div>
+                <label className={labelCls}>Late Grace (min)</label>
+                <input type="number" min="0" max="180" className={inputCls}
+                  value={form.lateGraceMinutes}
+                  onChange={(e) => set('lateGraceMinutes', e.target.value)} />
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Late = clock-in after start time + grace.</p>
+          </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex justify-end gap-3">
             <button type="button" onClick={onClose} className="text-sm px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>

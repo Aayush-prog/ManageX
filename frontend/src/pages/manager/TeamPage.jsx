@@ -127,12 +127,90 @@ const ReportModal = ({ user, onClose }) => {
   );
 };
 
+// ── Work Shift Modal ──────────────────────────────────────────────────────────
+
+const pad = (n) => String(n ?? 0).padStart(2, '0');
+const toHHMM = (h, m) => `${pad(h)}:${pad(m)}`;
+const fromHHMM = (s) => {
+  const [h, m] = (s || '00:00').split(':').map((n) => parseInt(n, 10) || 0);
+  return { h, m };
+};
+
+const ShiftModal = ({ user, onClose, onUpdated }) => {
+  const [workStart, setWorkStart] = useState(toHHMM(user.workStartHour ?? 12, user.workStartMinute ?? 0));
+  const [workEnd,   setWorkEnd]   = useState(toHHMM(user.workEndHour ?? 17, user.workEndMinute ?? 0));
+  const [grace,     setGrace]     = useState(user.lateGraceMinutes ?? 15);
+  const [saving,    setSaving]    = useState(false);
+  const [error,     setError]     = useState('');
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const start = fromHHMM(workStart);
+    const end   = fromHHMM(workEnd);
+    if (end.h * 60 + end.m <= start.h * 60 + start.m) {
+      setError('End time must be after start time'); return;
+    }
+    setSaving(true); setError('');
+    try {
+      const { data } = await api.patch(`/users/${user._id}/work-schedule`, {
+        workStartHour:    start.h,
+        workStartMinute:  start.m,
+        workEndHour:      end.h,
+        workEndMinute:    end.m,
+        lateGraceMinutes: Number(grace) || 0,
+      });
+      onUpdated(data.data); onClose();
+    } catch (err) { setError(err.response?.data?.message ?? 'Failed to save shift'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-800">Work Shift</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{user.name}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+        </div>
+        <form onSubmit={submit} className="px-6 py-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start</label>
+              <input type="time" value={workStart} onChange={(e) => setWorkStart(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End</label>
+              <input type="time" value={workEnd} onChange={(e) => setWorkEnd(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Late Grace (min)</label>
+            <input type="number" min="0" max="180" value={grace} onChange={(e) => setGrace(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            <p className="text-xs text-gray-400 mt-1">Marked late if clock-in is past start + grace.</p>
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex justify-end gap-3 pt-1">
+            <button type="button" onClick={onClose} className="text-sm px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-primary text-sm disabled:opacity-50">{saving ? 'Saving…' : 'Save Shift'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const TeamPage = () => {
   const [users,      setUsers]      = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [reportUser, setReportUser] = useState(null); // user to generate report for
+  const [shiftUser,  setShiftUser]  = useState(null); // user to edit shift for
 
   useEffect(() => {
     api.get('/users')
@@ -140,6 +218,10 @@ const TeamPage = () => {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const handleShiftUpdated = (updated) => {
+    setUsers((prev) => prev.map((u) => u._id === updated._id ? { ...u, ...updated } : u));
+  };
 
   return (
     <DashboardLayout title="Team">
@@ -163,8 +245,9 @@ const TeamPage = () => {
                   <th className="text-left px-4 py-3">Role</th>
                   <th className="text-left px-4 py-3">Email</th>
                   <th className="text-left px-4 py-3">Salary</th>
+                  <th className="text-left px-4 py-3">Shift</th>
                   <th className="text-left px-4 py-3">Status</th>
-                  <th className="text-right px-4 py-3">Report</th>
+                  <th className="text-right px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -174,18 +257,31 @@ const TeamPage = () => {
                     <td className="px-4 py-3 text-gray-500">{u.role}</td>
                     <td className="px-4 py-3 text-gray-400 text-xs">{u.email}</td>
                     <td className="px-4 py-3 text-gray-600 text-xs">Rs. {(u.monthlySalary ?? 0).toLocaleString('en-IN')}</td>
+                    <td className="px-4 py-3 text-gray-600 text-xs font-mono">
+                      {toHHMM(u.workStartHour ?? 12, u.workStartMinute ?? 0)}
+                      {' – '}
+                      {toHHMM(u.workEndHour ?? 17, u.workEndMinute ?? 0)}
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${u.isActive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
                         {u.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => setReportUser(u)}
-                        className="text-xs px-3 py-1.5 bg-brand-50 text-brand-700 rounded-lg hover:bg-brand-100 font-medium transition-colors"
-                      >
-                        ↓ Report
-                      </button>
+                      <div className="flex justify-end gap-2 flex-wrap">
+                        <button
+                          onClick={() => setShiftUser(u)}
+                          className="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 font-medium transition-colors"
+                        >
+                          Shift
+                        </button>
+                        <button
+                          onClick={() => setReportUser(u)}
+                          className="text-xs px-3 py-1.5 bg-brand-50 text-brand-700 rounded-lg hover:bg-brand-100 font-medium transition-colors"
+                        >
+                          ↓ Report
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -200,6 +296,13 @@ const TeamPage = () => {
         <ReportModal
           user={reportUser}
           onClose={() => setReportUser(null)}
+        />
+      )}
+      {shiftUser && (
+        <ShiftModal
+          user={shiftUser}
+          onClose={() => setShiftUser(null)}
+          onUpdated={handleShiftUpdated}
         />
       )}
     </DashboardLayout>

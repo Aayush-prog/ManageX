@@ -387,6 +387,17 @@ const AttendancePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startISO, endISO]);
 
+  // Refresh when a clock-in / clock-out push notification arrives via the service worker
+  useEffect(() => {
+    if (!navigator.serviceWorker) return;
+    const onMessage = (e) => {
+      if (e.data?.type === 'ATTENDANCE_UPDATED') fetchAttendance(false);
+    };
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startISO, endISO]);
+
   const holidayDateSet = useMemo(() => {
     const s = new Set();
     for (const h of holidays) s.add(eventToDateStr(h.date));

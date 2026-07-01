@@ -13,6 +13,7 @@ import {
   toggleActiveService,
   updateSalaryFromTeamService,
   updateUserService,
+  updateWorkScheduleService,
 } from '../services/user.service.js';
 
 // GET /api/users   [finance, coordinator, admin]
@@ -104,6 +105,14 @@ export const updateUser = async (req, res, next) => {
 export const updateSalaryFromTeam = async (req, res, next) => {
   try {
     const user = await updateSalaryFromTeamService(req.params.id, req.body.salaryFromTeam);
+    return res.json({ success: true, data: user });
+  } catch (err) { next(err); }
+};
+
+// PATCH /api/users/:id/work-schedule   [coordinator, admin]
+export const updateWorkSchedule = async (req, res, next) => {
+  try {
+    const user = await updateWorkScheduleService(req.params.id, req.body);
     return res.json({ success: true, data: user });
   } catch (err) { next(err); }
 };

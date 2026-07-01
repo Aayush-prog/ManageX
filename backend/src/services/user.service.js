@@ -82,7 +82,10 @@ export const updateSalaryFromTeamService = async (userId, salaryFromTeam) => {
 };
 
 // Update user profile (Super Admin only)
-export const updateUserService = async (userId, { name, email, role, permissionLevel, monthlySalary, rfid_uid }) => {
+export const updateUserService = async (userId, {
+  name, email, role, permissionLevel, monthlySalary, rfid_uid,
+  workStartHour, workStartMinute, workEndHour, workEndMinute, lateGraceMinutes,
+}) => {
   const ALLOWED = {};
   if (name           !== undefined) ALLOWED.name           = name;
   if (email          !== undefined) ALLOWED.email          = email.toLowerCase().trim();
@@ -90,6 +93,11 @@ export const updateUserService = async (userId, { name, email, role, permissionL
   if (permissionLevel !== undefined) ALLOWED.permissionLevel = permissionLevel;
   if (monthlySalary  !== undefined) ALLOWED.monthlySalary  = Number(monthlySalary) || 0;
   if (rfid_uid       !== undefined) ALLOWED.rfid_uid       = rfid_uid ? rfid_uid.trim().toUpperCase() : null;
+  if (workStartHour    !== undefined) ALLOWED.workStartHour    = Number(workStartHour);
+  if (workStartMinute  !== undefined) ALLOWED.workStartMinute  = Number(workStartMinute);
+  if (workEndHour      !== undefined) ALLOWED.workEndHour      = Number(workEndHour);
+  if (workEndMinute    !== undefined) ALLOWED.workEndMinute    = Number(workEndMinute);
+  if (lateGraceMinutes !== undefined) ALLOWED.lateGraceMinutes = Number(lateGraceMinutes);
 
   if (ALLOWED.email) {
     const existing = await User.findOne({ email: ALLOWED.email, _id: { $ne: userId } });
@@ -117,6 +125,63 @@ export const updateUserService = async (userId, { name, email, role, permissionL
     err.statusCode = 404;
     throw err;
   }
+  return user;
+};
+
+// Update just the work schedule fields (Coordinator + Admin)
+export const updateWorkScheduleService = async (userId, { workStartHour, workStartMinute, workEndHour, workEndMinute, lateGraceMinutes }) => {
+  const parseHour = (v) => {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0 || n > 23) {
+      const err = new Error('Hour must be between 0 and 23');
+      err.statusCode = 400;
+      throw err;
+    }
+    return n;
+  };
+  const parseMinute = (v) => {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0 || n > 59) {
+      const err = new Error('Minute must be between 0 and 59');
+      err.statusCode = 400;
+      throw err;
+    }
+    return n;
+  };
+
+  const patch = {};
+  if (workStartHour    !== undefined) patch.workStartHour    = parseHour(workStartHour);
+  if (workStartMinute  !== undefined) patch.workStartMinute  = parseMinute(workStartMinute);
+  if (workEndHour      !== undefined) patch.workEndHour      = parseHour(workEndHour);
+  if (workEndMinute    !== undefined) patch.workEndMinute    = parseMinute(workEndMinute);
+  if (lateGraceMinutes !== undefined) {
+    const n = Number(lateGraceMinutes);
+    if (!Number.isFinite(n) || n < 0 || n > 180) {
+      const err = new Error('Grace minutes must be between 0 and 180');
+      err.statusCode = 400;
+      throw err;
+    }
+    patch.lateGraceMinutes = n;
+  }
+
+  const user = await User.findByIdAndUpdate(userId, patch, { new: true, runValidators: true })
+    .select('-password -refreshTokenHash')
+    .populate('salaryFromTeam', 'name');
+  if (!user) {
+    const err = new Error('User not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // Guard: end time must be after start time
+  const startMin = user.workStartHour * 60 + user.workStartMinute;
+  const endMin   = user.workEndHour   * 60 + user.workEndMinute;
+  if (endMin <= startMin) {
+    const err = new Error('Work end time must be after start time');
+    err.statusCode = 400;
+    throw err;
+  }
+
   return user;
 };
 

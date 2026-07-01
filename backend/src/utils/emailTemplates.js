@@ -80,6 +80,53 @@ export const leaveRejected = ({ employeeName, type, startDate, endDate, days, ap
   `),
 });
 
+// ── Work From Home ────────────────────────────────────────────────────────────
+
+export const wfhRequested = ({ employeeName, startDate, endDate, days, reason }) => ({
+  subject: `WFH Request: ${employeeName} (${days} day${days > 1 ? 's' : ''})`,
+  html: base('New Work From Home Request', `
+    <p><strong>${employeeName}</strong> has submitted a work-from-home request that requires your attention.</p>
+    <div class="info-box">
+      <div class="info-row"><span class="label">Employee</span><span class="value">${employeeName}</span></div>
+      <div class="info-row"><span class="label">From</span><span class="value">${startDate}</span></div>
+      <div class="info-row"><span class="label">To</span><span class="value">${endDate}</span></div>
+      <div class="info-row"><span class="label">Duration</span><span class="value">${days} day${days > 1 ? 's' : ''}</span></div>
+      ${reason ? `<div class="info-row"><span class="label">Reason</span><span class="value">${reason}</span></div>` : ''}
+    </div>
+    <p>Please log in to ManageX to approve or reject this request.</p>
+  `),
+});
+
+export const wfhApproved = ({ employeeName, startDate, endDate, days, approvedBy }) => ({
+  subject: `Your Work From Home Request has been Approved`,
+  html: base('WFH Request Approved', `
+    <p>Hi <strong>${employeeName}</strong>,</p>
+    <p>Your work-from-home request has been <span class="badge badge-green">Approved</span>.</p>
+    <div class="info-box">
+      <div class="info-row"><span class="label">From</span><span class="value">${startDate}</span></div>
+      <div class="info-row"><span class="label">To</span><span class="value">${endDate}</span></div>
+      <div class="info-row"><span class="label">Duration</span><span class="value">${days} day${days > 1 ? 's' : ''}</span></div>
+      <div class="info-row"><span class="label">Approved By</span><span class="value">${approvedBy}</span></div>
+    </div>
+  `),
+});
+
+export const wfhRejected = ({ employeeName, startDate, endDate, days, approvedBy, reason }) => ({
+  subject: `Your Work From Home Request has been Rejected`,
+  html: base('WFH Request Rejected', `
+    <p>Hi <strong>${employeeName}</strong>,</p>
+    <p>Your work-from-home request has been <span class="badge badge-red">Rejected</span>.</p>
+    <div class="info-box">
+      <div class="info-row"><span class="label">From</span><span class="value">${startDate}</span></div>
+      <div class="info-row"><span class="label">To</span><span class="value">${endDate}</span></div>
+      <div class="info-row"><span class="label">Duration</span><span class="value">${days} day${days > 1 ? 's' : ''}</span></div>
+      <div class="info-row"><span class="label">Reviewed By</span><span class="value">${approvedBy}</span></div>
+      ${reason ? `<div class="info-row"><span class="label">Reason</span><span class="value">${reason}</span></div>` : ''}
+    </div>
+    <p>Please contact your manager if you have any questions.</p>
+  `),
+});
+
 // ── Projects ──────────────────────────────────────────────────────────────────
 
 export const projectAdded = ({ memberName, projectName, description, createdBy }) => ({
