@@ -5,7 +5,7 @@ import BSDatePicker from '../../components/ui/BSDatePicker.jsx';
 import api from '../../services/api.js';
 import { useAuth } from '../../store/AuthContext.jsx';
 import NepaliDate from 'nepali-date-converter';
-import { BS_MONTHS, bsMonthToADRange, currentBSMonthYear } from '../../utils/nepaliDate.js';
+import { BS_MONTHS, bsMonthToADRange, currentBSMonthYear, bsYearToADRange } from '../../utils/nepaliDate.js';
 
 const bsISOtoADISO = (bsDateStr) => {
   const [y, m, d] = bsDateStr.split('-').map(Number);
@@ -60,6 +60,11 @@ const CalendarPage = () => {
   const [events,  setEvents]  = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // 'grid' = month grid, 'list' = full-year list
+  const [view,       setView]       = useState('grid');
+  const [filterType, setFilterType] = useState('all');
+  const [search,     setSearch]     = useState('');
+
   // Modal state
   const [showAdd,   setShowAdd]   = useState(false);
   const [addDate,   setAddDate]   = useState('');
@@ -89,16 +94,18 @@ const CalendarPage = () => {
 
   const loadEvents = async () => {
     setLoading(true);
-    const { startISO, endISO } = bsMonthToADRange(bsYear, bsMonth);
+    const range = view === 'list'
+      ? bsYearToADRange(bsYear)
+      : bsMonthToADRange(bsYear, bsMonth);
     try {
-      const { data } = await api.get(`/calendar?start=${startISO}&end=${endISO}`);
+      const { data } = await api.get(`/calendar?start=${range.startISO}&end=${range.endISO}`);
       setEvents(data.data);
     } catch { /* ignore */ } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { loadEvents(); }, [bsYear, bsMonth]);
+  useEffect(() => { loadEvents(); }, [bsYear, bsMonth, view]);
 
   const daysInMonth = getDaysInBSMonth(bsYear, bsMonth);
   const startWeekday = getBSDay1Weekday(bsYear, bsMonth);
@@ -301,7 +308,7 @@ const CalendarPage = () => {
         const organizerPhone           = String(row.organizerPhone           ?? row['Organizer Phone']   ?? '').trim();
 
         if (!title) { parseErrors.push(`Row ${i + 2}: missing title`); return; }
-        if (!VALID_TYPES.includes(type)) { parseErrors.push(`Row ${i + 2}: invalid type "${type}" — use road/trail/event/holiday`); return; }
+        if (!VALID_TYPES.includes(type)) { parseErrors.push(`Row ${i + 2}: invalid type "${type}" — use road/trail/event/holiday/observance`); return; }
 
         const adDate = bsISOtoADISO(bsDate);
         if (!adDate) { parseErrors.push(`Row ${i + 2}: invalid BS date "${bsDate}" — use YYYY-MM-DD (BS)`); return; }
@@ -338,6 +345,22 @@ const CalendarPage = () => {
   const isSaturday = (day) => (startWeekday + day - 1) % 7 === 6;
   const isDayHoliday = (day) => isSaturday(day) || !!holidaysByBSDay[day];
 
+  // ── Year list view: filter + sort ─────────────────────────────────────────
+  const filteredEvents = events
+    .filter((ev) => filterType === 'all' ? true : ev.type === filterType)
+    .filter((ev) => {
+      if (!search.trim()) return true;
+      const q = search.trim().toLowerCase();
+      return (ev.title || '').toLowerCase().includes(q)
+        || (ev.description || '').toLowerCase().includes(q);
+    })
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const formatEventBSDate = (adISO) => {
+    const nd = new NepaliDate(new Date(adISO));
+    return `${BS_MONTHS[nd.getMonth()]} ${nd.getDate()}, ${nd.getYear()}`;
+  };
+
   return (
     <DashboardLayout title="Calendar">
       <div className="max-w-5xl mx-auto">
@@ -364,17 +387,57 @@ const CalendarPage = () => {
                 </button>
               </>
             )}
-            <div className="flex items-center gap-2">
-              <button onClick={prevMonth} className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                ‹ Prev
+            <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
+              <button
+                onClick={() => setView('grid')}
+                className={`px-3 py-1.5 font-medium ${view === 'grid' ? 'bg-brand-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              >
+                Month
               </button>
-              <span className="text-sm font-semibold text-gray-700 text-center min-w-[8rem]">
-                {BS_MONTHS[bsMonth]} {bsYear}
-              </span>
-              <button onClick={nextMonth} className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                Next ›
+              <button
+                onClick={() => setView('list')}
+                className={`px-3 py-1.5 font-medium ${view === 'list' ? 'bg-brand-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              >
+                Year list
               </button>
             </div>
+            {view === 'grid' ? (
+              <div className="flex items-center gap-2">
+                <button onClick={prevMonth} className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                  ‹ Prev
+                </button>
+                <span className="text-sm font-semibold text-gray-700 text-center min-w-[8rem]">
+                  {BS_MONTHS[bsMonth]} {bsYear}
+                </span>
+                <button onClick={nextMonth} className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                  Next ›
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setBsYear((y) => y - 1)}
+                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  ‹
+                </button>
+                <select
+                  value={bsYear}
+                  onChange={(e) => setBsYear(Number(e.target.value))}
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                >
+                  {[todayBSYear + 1, todayBSYear, todayBSYear - 1, todayBSYear - 2].map((y) => (
+                    <option key={y} value={y}>{y} BS</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => setBsYear((y) => y + 1)}
+                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  ›
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -392,7 +455,8 @@ const CalendarPage = () => {
           </div>
         </div>
 
-        {/* Calendar grid */}
+        {/* Calendar grid (month view) */}
+        {view === 'grid' && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           {/* Weekday headers */}
           <div className="grid grid-cols-7 border-b border-gray-100">
@@ -460,13 +524,54 @@ const CalendarPage = () => {
             </div>
           )}
         </div>
+        )}
 
-        {/* Upcoming events list */}
-        {events.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-sm font-semibold text-gray-600 mb-3">Events this month</h2>
+        {/* Full-year list view */}
+        {view === 'list' && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</label>
+                <div className="flex flex-wrap gap-1">
+                  {[['all', 'All'], ...Object.entries(TYPE_STYLES).map(([k, s]) => [k, s.label])].map(([k, label]) => (
+                    <button
+                      key={k}
+                      onClick={() => setFilterType(k)}
+                      className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+                        filterType === k ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <input
+                type="text"
+                placeholder="Search title or description…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-3">
+              {filteredEvents.length} event{filteredEvents.length === 1 ? '' : 's'} in {bsYear} BS
+              {filterType !== 'all' && ` · filtered by ${TYPE_STYLES[filterType]?.label ?? filterType}`}
+            </p>
+          </div>
+        )}
+
+        {/* Event list (year view) or "this month" (grid view) */}
+        {(view === 'list' ? filteredEvents.length > 0 : events.length > 0) && (
+          <div className={view === 'grid' ? 'mt-6' : ''}>
+            {view === 'grid' && (
+              <h2 className="text-sm font-semibold text-gray-600 mb-3">Events this month</h2>
+            )}
+            {view === 'list' && loading && (
+              <p className="text-sm text-gray-400 py-6 text-center">Loading…</p>
+            )}
             <div className="space-y-2">
-              {events.map((ev) => {
+              {(view === 'list' ? filteredEvents : events).map((ev) => {
                 const nd = new NepaliDate(new Date(ev.date));
                 const s = TYPE_STYLES[ev.type] ?? TYPE_STYLES.event;
                 const cs = ev.type !== 'holiday' ? CONTACT_STATUS_STYLES[ev.contactStatus] : null;
@@ -527,6 +632,14 @@ const CalendarPage = () => {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {view === 'list' && !loading && filteredEvents.length === 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center text-sm text-gray-400">
+            No events for {bsYear} BS
+            {filterType !== 'all' && ` in the "${TYPE_STYLES[filterType]?.label ?? filterType}" category`}
+            {search.trim() && ` matching "${search.trim()}"`}.
           </div>
         )}
       </div>
