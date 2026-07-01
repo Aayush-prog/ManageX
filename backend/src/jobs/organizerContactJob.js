@@ -14,7 +14,8 @@ const checkOrganizerContacts = async () => {
 
     const notifyBefore = new Date(now.getTime() - NOTIFY_COOLDOWN_MS);
 
-    // Find non-holiday events within the next 30 days where organizer is not yet contacted
+    // Only event types that have an external organizer to contact.
+    // Holiday and observance rows have no organizer and are skipped.
     const events = await CalendarEvent.find({
       type: { $in: ['road', 'trail', 'event'] },
       date: { $gte: now, $lte: oneMonthFromNow },

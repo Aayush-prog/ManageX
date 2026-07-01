@@ -7,6 +7,10 @@ router.use(authenticate);
 
 const VALID_TYPES = ['road', 'trail', 'event', 'holiday', 'observance'];
 
+// Types that have no external organizer to contact — the contact-status flow
+// (organizer fields + reminder emails) is skipped for these.
+const hasOrganizerContact = (type) => !['holiday', 'observance'].includes(type);
+
 // GET /api/calendar?start=YYYY-MM-DD&end=YYYY-MM-DD
 router.get('/', async (req, res, next) => {
   try {
@@ -35,14 +39,15 @@ router.post('/', allowRoles('coordinator', 'admin'), async (req, res, next) => {
     if (!VALID_TYPES.includes(type)) {
       return res.status(400).json({ success: false, message: `type must be one of: ${VALID_TYPES.join(', ')}` });
     }
+    const withContact = hasOrganizerContact(type);
     const event = await CalendarEvent.create({
       title,
       description,
       date: new Date(date + 'T00:00:00'),
       type,
-      organizerContactName:     organizerContactName     || '',
-      organizerContactPosition: organizerContactPosition || '',
-      organizerPhone:           organizerPhone           || '',
+      organizerContactName:     withContact ? (organizerContactName     || '') : '',
+      organizerContactPosition: withContact ? (organizerContactPosition || '') : '',
+      organizerPhone:           withContact ? (organizerPhone           || '') : '',
       createdBy: req.user.id,
     });
     await event.populate('createdBy', 'name');
@@ -67,7 +72,17 @@ router.post('/bulk', allowRoles('coordinator', 'admin'), async (req, res, next) 
       if (!title) { errors.push(`Row ${i + 1}: missing title`); return; }
       if (!date || isNaN(Date.parse(date))) { errors.push(`Row ${i + 1}: invalid date`); return; }
       if (!VALID_TYPES.includes(type)) { errors.push(`Row ${i + 1}: invalid type "${type}"`); return; }
-      docs.push({ title, description, date: new Date(date + 'T00:00:00'), type, organizerContactName, organizerContactPosition, organizerPhone, createdBy: req.user.id });
+      const withContact = hasOrganizerContact(type);
+      docs.push({
+        title,
+        description,
+        date: new Date(date + 'T00:00:00'),
+        type,
+        organizerContactName:     withContact ? organizerContactName     : '',
+        organizerContactPosition: withContact ? organizerContactPosition : '',
+        organizerPhone:           withContact ? organizerPhone           : '',
+        createdBy: req.user.id,
+      });
     });
 
     if (docs.length === 0) {
@@ -94,6 +109,7 @@ router.patch('/:id', allowRoles('coordinator', 'admin'), async (req, res, next) 
     if (!VALID_TYPES.includes(type)) {
       return res.status(400).json({ success: false, message: `type must be one of: ${VALID_TYPES.join(', ')}` });
     }
+    const withContact = hasOrganizerContact(type);
     const event = await CalendarEvent.findByIdAndUpdate(
       req.params.id,
       {
@@ -101,9 +117,11 @@ router.patch('/:id', allowRoles('coordinator', 'admin'), async (req, res, next) 
         description: description || '',
         date: new Date(date + 'T00:00:00'),
         type,
-        organizerContactName:     organizerContactName     || '',
-        organizerContactPosition: organizerContactPosition || '',
-        organizerPhone:           organizerPhone           || '',
+        organizerContactName:     withContact ? (organizerContactName     || '') : '',
+        organizerContactPosition: withContact ? (organizerContactPosition || '') : '',
+        organizerPhone:           withContact ? (organizerPhone           || '') : '',
+        // Reset contact status back to pending if switching away from a contactable type
+        ...(withContact ? {} : { contactStatus: 'pending', contactNotifiedAt: null }),
       },
       { new: true }
     ).populate('createdBy', 'name');
@@ -119,6 +137,11 @@ router.patch('/:id/contact-status', allowRoles('finance', 'coordinator', 'admin'
     const VALID_STATUSES = ['pending', 'contacted', 'rejected', 'allowed'];
     if (!VALID_STATUSES.includes(contactStatus)) {
       return res.status(400).json({ success: false, message: `contactStatus must be one of: ${VALID_STATUSES.join(', ')}` });
+    }
+    const existing = await CalendarEvent.findById(req.params.id).select('type').lean();
+    if (!existing) return res.status(404).json({ success: false, message: 'Event not found' });
+    if (!hasOrganizerContact(existing.type)) {
+      return res.status(400).json({ success: false, message: `Contact status is not applicable for ${existing.type} events` });
     }
     const event = await CalendarEvent.findByIdAndUpdate(
       req.params.id,

@@ -26,6 +26,10 @@ const TYPE_STYLES = {
   observance: { dot: 'bg-purple-500',  badge: 'bg-purple-100 text-purple-700',   label: 'Observance' },
 };
 
+// Types that don't have an external organizer to contact — hide the whole
+// contact-status UI (badge, dropdown, and organizer fields) for these.
+const hasContactStatus = (type) => !['holiday', 'observance'].includes(type);
+
 const CONTACT_STATUS_STYLES = {
   pending:   { badge: 'bg-yellow-100 text-yellow-700', label: 'Not Contacted' },
   contacted: { badge: 'bg-blue-100 text-blue-700',     label: 'Contacted' },
@@ -574,7 +578,7 @@ const CalendarPage = () => {
               {(view === 'list' ? filteredEvents : events).map((ev) => {
                 const nd = new NepaliDate(new Date(ev.date));
                 const s = TYPE_STYLES[ev.type] ?? TYPE_STYLES.event;
-                const cs = ev.type !== 'holiday' ? CONTACT_STATUS_STYLES[ev.contactStatus] : null;
+                const cs = hasContactStatus(ev.type) ? CONTACT_STATUS_STYLES[ev.contactStatus] : null;
                 return (
                   <div key={ev._id} className="flex items-start gap-3 bg-white rounded-xl border border-gray-100 px-4 py-3">
                     <span className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${s.dot}`} />
@@ -598,7 +602,7 @@ const CalendarPage = () => {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {canUpdateStatus && ev.type !== 'holiday' && (
+                      {canUpdateStatus && hasContactStatus(ev.type) && (
                         <select
                           value={ev.contactStatus}
                           onChange={(e) => updateContactStatus(ev._id, e.target.value)}
@@ -667,7 +671,7 @@ const CalendarPage = () => {
             <div className="space-y-3">
               {selectedDay.events.map((ev) => {
                 const s = TYPE_STYLES[ev.type] ?? TYPE_STYLES.event;
-                const cs = ev.type !== 'holiday' ? CONTACT_STATUS_STYLES[ev.contactStatus] : null;
+                const cs = hasContactStatus(ev.type) ? CONTACT_STATUS_STYLES[ev.contactStatus] : null;
                 return (
                   <div key={ev._id} className="p-3 rounded-lg bg-gray-50 space-y-2">
                     <div className="flex items-start gap-3">
@@ -696,7 +700,7 @@ const CalendarPage = () => {
                       )}
                     </div>
                     {/* Contact status updater */}
-                    {canUpdateStatus && ev.type !== 'holiday' && (
+                    {canUpdateStatus && hasContactStatus(ev.type) && (
                       <div className="flex items-center gap-2 pl-5">
                         <span className="text-xs text-gray-400">Contact status:</span>
                         <select
@@ -767,7 +771,7 @@ const CalendarPage = () => {
                   placeholder="Optional description…"
                 />
               </div>
-              {addForm.type !== 'holiday' && (
+              {hasContactStatus(addForm.type) && (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -862,7 +866,7 @@ const CalendarPage = () => {
                   placeholder="Optional description…"
                 />
               </div>
-              {editForm.type !== 'holiday' && (
+              {hasContactStatus(editForm.type) && (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
